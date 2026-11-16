@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#214e40">
+  <meta name="description" content="从第一次上手到独立完成工作。一个保存在你自己浏览器里的 AI Agent 学习空间。">
+  <title>启程 · Agent Academy</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./details.css">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <script defer src="./content.js"></script>
+  <script defer src="./core.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主要导航">
+      <a class="brand" href="#/overview" aria-label="启程首页"><span class="brand-mark">启</span><span class="brand-copy"><strong>启程</strong><span>AGENT ACADEMY</span></span></a>
+      <span class="nav-section-label">我的学习空间</span>
+      <nav class="nav-links" id="nav-links"></nav>
+      <div class="sidebar-bottom"><div id="sidebar-progress"></div><div class="local-indicator"><span class="status-dot"></span><span id="storage-label">学习记录保存在本机</span></div></div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar"><div class="breadcrumb" id="breadcrumb">我的学习空间 <span>/</span> 学习总览</div><div class="topbar-actions"><span class="local-indicator"><span class="status-dot"></span><span id="save-status">本地学习空间</span></span><button class="avatar" data-action="goal" aria-label="调整学习目标">你</button></div></header>
+      <main id="main" class="main-content" tabindex="-1"><div class="empty-state">正在打开你的学习空间…</div></main>
+      <footer class="app-footer"><span>一点点学会，一次次做好。</span><a href="#/settings">本地数据与备份</a></footer>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="app-dialog" class="dialog-modal"></dialog>
+  <input id="backup-file" type="file" accept="application/json,.json" hidden>
+  <noscript><p>这个学习工具需要开启 JavaScript，课程与学习记录均在浏览器中处理。</p></noscript>
+</body>
+</html>
