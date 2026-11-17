@@ -1,12 +1,13 @@
 /* Client-only learning state, validation and progress. No network or storage side effects. */
 (function (root, factory) {
   'use strict';
-  var api = factory(root);
+  var quality = typeof module === 'object' && module.exports ? require('./quality-core.js') : root.AgentQualityCore;
+  var api = factory(root, quality);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.AgentLearningCore = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (root, Q) {
   'use strict';
-  var VERSION = 1;
+  var VERSION = 2;
   var own = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
   var badKey = function (k) { return k === '__proto__' || k === 'constructor' || k === 'prototype'; };
   var isObject = function (o) { return o !== null && typeof o === 'object' && !Array.isArray(o) && (Object.getPrototypeOf(o) === Object.prototype || Object.getPrototypeOf(o) === null); };
@@ -38,7 +39,7 @@
   }
   function contentOf(content) {
     var c = content || (root && root.AgentCourseContent) || {};
-    return { goals: Array.isArray(c.goals) ? c.goals : [], lessons: Array.isArray(c.lessons) ? c.lessons : [], tasks: Array.isArray(c.tasks) ? c.tasks : [], modules: Array.isArray(c.modules) ? c.modules : [] };
+    return { goals: Array.isArray(c.goals) ? c.goals : [], lessons: Array.isArray(c.lessons) ? c.lessons : [], tasks: Array.isArray(c.tasks) ? c.tasks : [], modules: Array.isArray(c.modules) ? c.modules : [], practice: isObject(c.practice) ? c.practice : {} };
   }
   function defaultGoal(c) { return c.goals.find(function (g) { return g.id === 'starter'; }) || c.goals[0] || { id: 'starter', title: '完成学习主线', targetTasks: 3, targetLessons: 12, weeks: 4 }; }
   function blankTask(task) {
@@ -49,7 +50,7 @@
   function createState(content) {
     var c = contentOf(content), stamp = nowISO(), tasks = {};
     c.tasks.forEach(function (task) { if (!badKey(task.id)) tasks[task.id] = blankTask(task); });
-    return { schemaVersion: VERSION, createdAt: stamp, updatedAt: stamp, profile: { goalId: defaultGoal(c).id, role: '通用办公', weeklyMinutes: 120, startedAt: today() }, lessons: {}, tasks: tasks, activities: [] };
+    return { schemaVersion: VERSION, createdAt: stamp, updatedAt: stamp, profile: { goalId: defaultGoal(c).id, role: '通用办公', weeklyMinutes: 180, startedAt: today() }, lessons: {}, tasks: tasks, activities: [], learning: Q.createLearning(c) };
   }
   function guardTree(value) {
     var count = 0, active = new WeakSet();
@@ -89,9 +90,10 @@
     }
     try {
       guardTree(raw);
+      if (!isObject(raw) || (raw.schemaVersion !== 1 && raw.schemaVersion !== VERSION)) { fail('不支持此备份版本，请使用版本 1 或 2 的备份。'); return clean; }
       var topFields = ['schemaVersion', 'createdAt', 'updatedAt', 'profile', 'lessons', 'tasks', 'activities'];
+      if (raw.schemaVersion === VERSION) topFields.push('learning');
       if (!keys(raw, topFields, '备份', topFields)) return clean;
-      if (raw.schemaVersion !== VERSION) { fail('不支持此备份版本，请使用版本 1 的备份。'); return clean; }
       clean.createdAt = timestamp(raw.createdAt, clean.createdAt, '创建');
       clean.updatedAt = timestamp(raw.updatedAt, clean.updatedAt, '更新');
       var p = raw.profile, profileFields = ['goalId', 'role', 'weeklyMinutes', 'startedAt'];
@@ -153,6 +155,8 @@
           clean.activities.push({ type: activity.type, id: activity.id, date: activity.date, at: activity.at });
         });
       } else fail('学习活动记录应为不超过 10000 条的数组。');
+      if (raw.schemaVersion === VERSION) clean.learning = Q.normalizeLearning(raw.learning, c, { strict: true });
+      // Version 1 retains its drafts and self-checks but supplies no independent evidence.
       return clean;
     } catch (error) { if (strict) throw error; return createState(c); }
   }
@@ -170,20 +174,18 @@
     var requiredTasks = Math.max(0, Number.isInteger(goal.targetTasks) ? goal.targetTasks : 3);
     var lessonPercent = requiredLessons.length ? Math.min(100, Math.round(completedLessons / requiredLessons.length * 100)) : 100;
     var taskPercent = requiredTasks ? Math.min(100, Math.round(completedTaskIds.length / requiredTasks * 100)) : 100;
-    var skills = c.modules.map(function (mod) {
-      var lessons = c.lessons.filter(function (l) { return l.moduleId === mod.id; });
-      return { name: mod.title, total: lessons.length, done: lessons.filter(passed).length };
-    });
+    var qualityStats = Q.getQualityStats(s, c);
     return {
       goal: goal, requiredLessons: requiredLessons, completedLessons: completedLessons,
       allCompletedLessons: c.lessons.filter(passed).length, completedTasks: completedTaskIds.length,
       requiredTasks: requiredTasks, lessonPercent: lessonPercent, taskPercent: taskPercent,
-      percent: Math.min(100, Math.round((lessonPercent + taskPercent) / 2)),
-      learningDays: new Set(s.activities.map(function (activity) { return activity.date; })).size,
+      percent: Math.min(100, Math.round((lessonPercent + qualityStats.projectPercent) / 2)),
+      learningDays: new Set(s.activities.map(function (activity) { return activity.date; }).concat(s.learning.runs.map(function (run) { return run.date; }))).size,
       drafts: c.tasks.filter(function (task) { var r = s.tasks[task.id]; return r && (r.input.trim() || r.output.trim()) && completedTaskIds.indexOf(task.id) < 0; }).length,
       minutes: c.lessons.filter(passed).reduce(function (sum, lesson) { return sum + (Number(lesson.minutes) || 0); }, 0),
       completedTaskIds: completedTaskIds, nextLesson: requiredLessons.find(function (lesson) { return !passed(lesson); }) || null,
-      skills: skills
+      skills: qualityStats.skills, projectPercent: qualityStats.projectPercent,
+      weeks: qualityStats.weeks, delayed: qualityStats.delayed
     };
   }
   return { createState: createState, normalizeState: normalizeState, getStats: getStats, today: today, formatDate: formatDate };
