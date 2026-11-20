@@ -6,7 +6,7 @@
   if (root) root.AgentQualityCore = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
-  var KINDS = ['pretest', 'baseline', 'normal', 'missing', 'conflict', 'independent', 'transfer', 'delayed', 'assistant', 'automation-normal', 'automation-missing', 'automation-duplicate'];
+  var KINDS = ['practice', 'pretest', 'baseline', 'normal', 'missing', 'conflict', 'independent', 'transfer', 'delayed', 'assistant', 'automation-normal', 'automation-missing', 'automation-duplicate'];
   var PACK_KEYS = ['choice', 'materials', 'instruction', 'rubric', 'recovery', 'handoff'];
   var CHECK_KEYS = ['facts', 'sources', 'complete', 'boundary'];
   var TIME_KEYS = ['manual', 'prepare', 'operate', 'wait', 'review', 'rework', 'setup'];
@@ -156,6 +156,13 @@
       ['input', 'instruction', 'output'].forEach(function (k) { if (!enough(draft[k], 10)) problems.push(label + '的资料、任务说明和输出均需至少 10 个字符。'); });
       return problems;
     }
+    if (draft.kind === 'practice') {
+      if (!enough(draft.input, 10)) problems.push('请记录练习资料，至少 10 个字符。');
+      if (!enough(draft.instruction, 10)) problems.push('请记录练习任务说明，至少 10 个字符。');
+      if (!enough(draft.output, 20)) problems.push('请记录练习实际输出，至少 20 个字符。');
+      if (draft.support !== 'guided') problems.push('普通练习按有引导练习保存；独立表现请使用相应项目验收。');
+      return problems;
+    }
     if (!enough(draft.input, 10)) problems.push('请记录实际资料，至少 10 个字符。');
     if (!enough(draft.instruction, 20)) problems.push('请记录实际任务说明，至少 20 个字符。');
     if (!enough(draft.output, 20)) problems.push('请记录实际输出，至少 20 个字符。');
@@ -192,7 +199,7 @@
   }
   function getQualityStats(state, content) {
     var learning = normalizeLearning(state && state.learning || createLearning(content), content), main = learning.mainTaskId;
-    var accepted = learning.runs.filter(function (run) { return ['pretest', 'baseline'].indexOf(run.kind) < 0 && learning.withdrawnRunIds.indexOf(run.id) < 0 && validateRun(run, content, learning).length === 0; });
+    var accepted = learning.runs.filter(function (run) { return ['practice', 'pretest', 'baseline'].indexOf(run.kind) < 0 && learning.withdrawnRunIds.indexOf(run.id) < 0 && validateRun(run, content, learning).length === 0; });
     var mainRuns = accepted.filter(function (run) { return run.taskId === main && ['normal', 'missing', 'conflict', 'independent'].indexOf(run.kind) >= 0; });
     function mainKind(kind) { return mainRuns.some(function (run) { return run.kind === kind; }); }
     function week(id, missing) { return { id: id, done: missing.length === 0, missing: missing }; }

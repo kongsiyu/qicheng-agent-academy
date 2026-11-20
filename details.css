@@ -6,3 +6,51 @@
 @media(max-width:680px){.skill-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:19px;gap:19px 18px}.app-footer{padding:0 20px 100px}.lesson-block{grid-template-columns:20px 1fr;gap:10px}.lesson-block h2{font-size:17px}.dashboard-tasks{grid-template-columns:1fr!important}.hero-copy{max-width:78%}.hero-art{opacity:.65}.hero-copy .hero-text{color:#647956}.goal-card .goal-metrics{grid-row:1/span 2}.step-item{min-height:44px}.dialog-card{max-width:100%}.dialog-modal{max-width:calc(100vw - 24px)}.settings-row strong{max-width:60%}.form-input,.form-select,.form-textarea{font-size:16px}}
 @media(max-width:360px){.skill-grid{grid-template-columns:1fr}.hero-title{font-size:21px}.hero-art{opacity:.4}.hero-copy{max-width:90%}.goal-card{grid-template-columns:1fr}.goal-card .goal-metrics{grid-column:auto;grid-row:auto;border-left:0;border-top:1px solid var(--line);padding:14px 0 0}.sidebar .nav-label{font-size:9px}}
 .local-indicator .status-dot{display:none}
+
+/* Start with one task; courses and assessment stay available after practice. */
+.start-hero{display:grid;grid-template-columns:minmax(0,1fr) 240px;align-items:center;gap:30px;padding:40px 44px;background:#eaf1e2;border:1px solid #dce8d1;border-radius:22px;overflow:hidden}
+.start-hero-copy{min-width:0;max-width:610px}
+.start-hero-copy h2{font-size:31px;line-height:1.55;letter-spacing:-.5px;margin:17px 0 12px;color:#3d5a32;font-weight:500}
+.start-hero-copy>p{font-size:14px;line-height:1.95;color:#677c5b;max-width:520px}
+.start-main-actions{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:28px}
+.start-main-actions>.primary{min-height:49px;padding:14px 23px;font-size:14px}
+.start-hero-art{width:220px;justify-self:end;opacity:.88}
+.start-hero-art svg{display:block;width:100%;height:auto}
+.starter-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px;margin:28px 0 38px;padding:0 6px;list-style:none}
+.starter-steps li{display:flex;gap:13px;align-items:flex-start}
+.starter-steps li>span{display:flex;align-items:center;justify-content:center;flex:none;width:31px;height:31px;border:1px solid #dbe6d3;border-radius:50%;background:#f0f5ea;color:#6e895a;font-size:12px}
+.starter-steps h3{font-size:14px;line-height:1.6;font-weight:500;color:#5b7250;margin:2px 0 5px}
+.starter-steps p{font-size:12px;line-height:1.8;color:#87977a}
+.home-followups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.home-followup{display:flex;align-items:flex-start;gap:15px;padding:24px;background:#fff;border:1px solid var(--line);border-radius:16px;min-width:0}
+.home-followup-icon{flex:none;color:#8ca079;padding-top:2px}
+.home-followup-icon .icon{width:22px;height:22px}
+.home-followup h2{font-size:15px;line-height:1.7;font-weight:500;color:#647b56}
+.home-followup p{font-size:12px;line-height:1.85;color:#8c9980;margin:7px 0 12px}
+.sidebar-practice-note{padding-top:4px;font-size:11px;color:#8c9985;line-height:1.9}
+.sidebar-practice-note strong{font-weight:500;color:#6e835f}
+.sidebar-practice-note p{margin:7px 0 11px}
+.sidebar-practice-note .text-link{font-size:11px}
+.lab-three-steps{display:flex;align-items:center;gap:16px;padding:17px 22px;margin:0 0 25px;background:#f0f5eb;border:1px solid #e2ead9;border-radius:13px;color:#718664;font-size:12px}
+.lab-three-steps>span{display:flex;align-items:center;gap:8px}
+.lab-three-steps b{display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;border-radius:50%;background:#fff;color:#7d956d;font-size:10px;font-weight:500}
+.lab-three-steps .icon{width:13px;height:13px;color:#bac8b1}
+.task-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.beginner-task-card .task-card-top .task-icon{margin:0}
+.beginner-task-card .task-title{font-size:17px;line-height:1.6;margin-bottom:10px}
+.beginner-task-card .task-description{font-size:12px;line-height:1.9;color:#839375}
+.beginner-task-card .task-footer{gap:12px;flex-wrap:wrap;align-items:center}
+.beginner-task-card .task-footer>span{font-size:10px;color:#9aa68e}
+.beginner-task-card .task-footer>.button{min-height:40px}
+.lab-next-note{font-size:12px;color:#8e9c83;line-height:1.9;margin-top:24px}
+.lab-next-note .text-link{margin:0 4px}
+.related-task small{display:block;color:#96a58c;font-size:10px;line-height:1.8;margin-top:3px}
+.artifact-record-meta{font-size:11px;color:#92a087;line-height:1.8;margin-top:7px}
+.beginner-artifacts .artifact-card>.text-link{margin-top:15px}
+.legacy-history{margin-top:34px;padding-top:23px;border-top:1px solid var(--line);font-size:12px;color:#8b9a80}
+.legacy-history>summary{cursor:pointer;line-height:1.8;color:#738667;padding:7px 0}
+.legacy-history>p{margin:12px 0 18px;line-height:1.9}
+.legacy-history .artifact-card h3{font-size:16px;line-height:1.7}
+@media(max-width:1100px){.start-hero{grid-template-columns:minmax(0,1fr) 175px;padding:32px;gap:15px}.start-hero-art{width:175px}.start-hero-copy h2{font-size:27px}.starter-steps{gap:19px}.home-followup{padding:21px;gap:12px}.beginner-task-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.start-hero{grid-template-columns:minmax(0,1fr);padding:30px}.start-hero-art{display:none}.start-hero-copy{max-width:none}.start-hero-copy h2{font-size:28px;max-width:520px}.starter-steps{gap:16px}.starter-steps li{gap:9px}.starter-steps p{font-size:11px}.home-followups{gap:16px}.home-followup-icon{display:none}.lab-three-steps{gap:13px}}
+@media(max-width:580px){.start-hero{padding:26px 23px;border-radius:18px}.start-hero-copy h2{font-size:26px;line-height:1.55;margin-top:17px}.start-hero-copy>p{font-size:13px}.start-main-actions{margin-top:23px;gap:20px}.start-main-actions>.primary{min-height:48px;padding:13px 18px;font-size:13px}.starter-steps{grid-template-columns:1fr;gap:17px;margin:25px 0 29px;padding-inline:3px}.starter-steps li{gap:12px}.starter-steps p{font-size:12px}.starter-steps h3{margin-bottom:3px}.home-followups{grid-template-columns:1fr;gap:14px}.home-followup{padding:20px 22px}.home-followup-icon{display:block}.lab-three-steps{gap:8px;padding:15px 12px;justify-content:space-between;font-size:11px}.lab-three-steps>span{gap:5px}.lab-three-steps b{width:20px;height:20px}.lab-three-steps .icon{width:10px;height:10px}.beginner-task-grid{grid-template-columns:1fr}.beginner-task-card{padding:22px}.beginner-task-card .task-footer{flex-wrap:nowrap}.beginner-task-card .task-footer>.button{min-height:42px;padding-inline:14px}.lab-next-note{margin-top:20px}}

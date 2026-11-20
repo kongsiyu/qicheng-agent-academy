@@ -22,8 +22,10 @@ window.createProjectUI = function (ctx) {
     return ok;
   }
   const quality = () => Q.getQualityStats(getState(), C);
+  const B = window.createBeginnerPractice({...ctx,save});
   const task = id => C.tasks.find(t => t.id === id);
   const kinds = {
+    practice: '跟着做一次',
     baseline: '人工流程耗时基线', pretest:'学前 Agent 尝试', normal: '正常资料', missing: '资料不足', conflict: '资料冲突或重复',
     independent: '结课独立任务', transfer: '第二任务迁移', delayed: '一周后复验',
     assistant: '定制助手实测', 'automation-normal': '自动化：正常输入',
@@ -49,8 +51,7 @@ window.createProjectUI = function (ctx) {
     return '已保留学前与结课独立尝试。请导出评审包，由评审核对前后顺序、材料难度与八项能力表现，判断进步是否成立。';
   }
   function dashboard() {
-    const s = quality(), goal = C.goals.find(g=>g.id===getState().profile.goalId), next = s.weeks.slice(0,goal.weeks).find(w => !w.done);
-    return `<section class="project-overview surface-card"><div><p class="eyebrow">LEARNING THROUGH WORK</p><h2>${next ? `第 ${next.id.slice(1)} 周：继续积累项目证据` : '主线项目证据已齐备'}</h2><p>一个任务反复练习，再迁移到第二个任务。主线：${esc(task(learning().mainTaskId).title)}</p></div><a class="button primary" href="#/project/path">进入我的项目 ${icon('arrow')}</a></section>`;
+    return `<section class="project-overview surface-card"><div><h2>先做成一次，再慢慢学深</h2><p>资料和任务说明已经备好。跟着三步走，把第一份结果做出来。</p></div><a class="button primary" href="#/project/start">开始练习 ${icon('arrow')}</a></section>`;
   }
   function skillCards() {
     return `<section class="skill-section"><div class="section-heading"><div><h2>八项能力的练习证据</h2><p>根据已存档练习与自评显示；可导出供教师或同事抽评。</p></div></div><div class="skill-grid">${quality().skills.map(s => `<div class="skill-item"><div><span>${esc(s.name)}</span><small>${s.evidenceCount} 份证据</small></div><p class="evidence-level level-${s.level}">${statusLabel(s.level)}</p></div>`).join('')}</div></section>`;
@@ -99,6 +100,7 @@ window.createProjectUI = function (ctx) {
   }
   function trainView() {
     const t = task(view.taskId || learning().draft.taskId), p = C.practice[t.id];
+    if(learning().draft.kind==='practice' && view.stage==='run')view.stage='demo';
     return `${stageTabs()}<section class="surface-card project-section">${view.stage !== 'run' ? `<div class="form-group"><label class="input-label" for="project-learning-task">练习任务</label><select id="project-learning-task" class="form-select" data-project-select="taskId">${C.tasks.map(x => `<option value="${x.id}" ${x.id === t.id ? 'selected' : ''}>${esc(x.title)}</option>`).join('')}</select></div>` : ''}${view.stage === 'demo' ? demoView(t,p) : view.stage === 'diagnose' ? diagnoseView(t,p) : view.stage === 'scaffold' ? scaffoldView(t,p) : runView()}</section>`;
   }
   function timeText(run) {
@@ -108,7 +110,7 @@ window.createProjectUI = function (ctx) {
   }
   function recordView() {
     const runs = learning().runs;
-    return `${note('记录来自学员填写与自评，证据齐备不等于外部认证。导出评审包后，可请教师或同事核查材料、判断和成果。')}<div class="task-actions"><a class="button primary" href="#/project/train">继续练习</a>${button('export-review','导出完整评审包','',true)}</div>${runs.length ? `<div class="project-records">${runs.slice().reverse().map(r => `<article class="surface-card project-section"><div class="section-heading"><h2>${esc(kinds[r.kind])} · ${esc(task(r.taskId).title)}</h2><span class="badge neutral">${learning().withdrawnRunIds.includes(r.id) ? '已撤回自评' : ['baseline','pretest'].includes(r.kind) ? '基线或学前记录' : '自评证据 · 待抽评'}</span></div><p class="muted">${esc(r.date)} · ${r.context === 'work' ? '真实工作资料（自述）' : '教学或模拟材料'} · ${r.support === 'independent' ? '独立组织与核查' : '使用课程或他人提示'}</p><pre class="output-preview">${esc(r.output)}</pre><p class="field-hint">${esc(timeText(r))}</p><details class="project-details"><summary>查看本次材料与判断</summary><h3>资料</h3><pre class="output-preview">${esc(r.input)}</pre><h3>任务说明</h3><pre class="output-preview">${esc(r.instruction)}</pre>${[['来源核查',r.sourceCheck],['纠错记录',r.correction],['缺口与权限',r.decision],['迁移调整',r.adaptation],['补充记录',r.notes]].filter(x=>x[1]).map(([title,value])=>`<h3>${title}</h3><p class="preserve-text">${esc(value)}</p>`).join('')}</details>${button('export-run','导出这次记录',`data-run="${esc(r.id)}"`,true)}${learning().withdrawnRunIds.includes(r.id) ? '' : button('withdraw','撤回这次自评',`data-run="${esc(r.id)}"`,true)}</article>`).join('')}</div>` : `<div class="empty-state"><h2>还没有存档记录</h2><p>先做学前尝试，之后用新材料检验变化。人工时间基线单独记录。</p></div>`}`;
+    return `${note('普通练习与独立验证分别记录。可以导出，也可以撤回有误的自检。')}<div class="task-actions"><a class="button primary" href="#/project/start">继续练习</a>${button('export-review','导出完整评审包','',true)}</div>${runs.length ? `<div class="project-records">${runs.slice().reverse().map(r => `<article class="surface-card project-section"><div class="section-heading"><h2>${esc(kinds[r.kind])} · ${esc(task(r.taskId).title)}</h2><span class="badge neutral">${learning().withdrawnRunIds.includes(r.id) ? '已撤回自评' : r.kind==='practice' ? '普通练习 · 已保存' : ['baseline','pretest'].includes(r.kind) ? '基线或学前记录' : '独立验证 · 自评记录'}</span></div><p class="muted">${esc(r.date)} · ${r.kind==='practice' ? '普通练习' : r.context === 'work' ? '真实工作资料（自述）' : '教学或模拟材料'} · ${r.support === 'independent' ? '独立组织与核查' : '使用课程或他人提示'}</p><pre class="output-preview">${esc(r.output)}</pre><p class="field-hint">${esc(r.kind==='practice'?'已确认 '+Object.values(r.checks).filter(Boolean).length+' / 4 项自检':timeText(r))}</p><details class="project-details"><summary>查看本次材料与判断</summary><h3>资料</h3><pre class="output-preview">${esc(r.input)}</pre><h3>任务说明</h3><pre class="output-preview">${esc(r.instruction)}</pre>${[['来源核查',r.sourceCheck],['纠错记录',r.correction],['缺口与权限',r.decision],['迁移调整',r.adaptation],['补充记录',r.notes]].filter(x=>x[1]).map(([title,value])=>`<h3>${title}</h3><p class="preserve-text">${esc(value)}</p>`).join('')}</details>${button('export-run','导出这次记录',`data-run="${esc(r.id)}"`,true)}${learning().withdrawnRunIds.includes(r.id) ? '' : button('withdraw','撤回这次自检',`data-run="${esc(r.id)}"`,true)}</article>`).join('')}</div>` : `<div class="empty-state"><h2>还没有保存的练习</h2><p>先跟着三步做一次练习，资料和任务说明已经准备好。</p></div>`}`;
   }
   function packView() {
     const p = learning().pack;
@@ -119,8 +121,9 @@ window.createProjectUI = function (ctx) {
   }
   function render(tab = 'path') {
     checkpoint();
-    view.tab = ['path','train','records','pack','review'].includes(tab) ? tab : 'path';
-    main.innerHTML = `<div class="page-heading"><div><p class="eyebrow">PRACTICE, CHECK, TRANSFER</p><h1>我的学习项目</h1><p>用成果与判断留下学习证据，逐步练到独立完成。</p></div><a class="button ghost" href="#/tasks">查看六个任务包</a></div><nav class="project-tabs" aria-label="项目页面">${[['path','项目路线'],['train','动手练习'],['records','练习记录'],['pack','我的任务包'],['review','评价标准']].map(([id,label])=>`<a href="#/project/${id}" class="${id===view.tab?'active':''}" ${id===view.tab?'aria-current="page"':''}>${label}</a>`).join('')}</nav>${view.tab === 'path' ? pathView() : view.tab === 'train' ? trainView() : view.tab === 'records' ? recordView() : view.tab === 'pack' ? packView() : reviewView()}`;
+    if(['path','start'].includes(tab)) {view.tab='start';B.render();return;}
+    view.tab = ['plan','train','records','pack','review'].includes(tab) ? tab : 'plan';
+    main.innerHTML = `<div class="page-heading"><div><p class="eyebrow">按需深入</p><h1>${view.tab==='records'?'我的练习记录':'学习计划与独立验证'}</h1><p>${view.tab==='records'?'每次尝试都单独保存，可以回来继续检查。':'做过第一次练习后，再按需要制作任务包、比较省时或验证独立能力。'}</p></div><a class="button secondary" href="#/project/start">回到三步练习</a></div><nav class="project-tabs" aria-label="项目页面">${[['plan','四周计划'],['train','示范与验证'],['records','练习记录'],['pack','任务包'],['review','评价标准']].map(([id,label])=>`<a href="#/project/${id}" class="${id===view.tab?'active':''}" ${id===view.tab?'aria-current="page"':''}>${label}</a>`).join('')}</nav>${view.tab === 'plan' ? pathView() : view.tab === 'train' ? trainView() : view.tab === 'records' ? recordView() : view.tab === 'pack' ? packView() : reviewView()}`;
   }
   function go(tab) {
     view.tab = tab;
@@ -139,12 +142,14 @@ window.createProjectUI = function (ctx) {
   let pendingDraft = null;
   function requestDraft(kind, scaffold = false, taskId = null) {
     const d = learning().draft;
-    if (d.input.trim() || d.instruction.trim() || d.output.trim()) {
+    const archived=learning().runs.some(run=>Object.keys(d).every(key=>JSON.stringify(run[key])===JSON.stringify(d[key])));
+    if (!archived && (d.input.trim() || d.instruction.trim() || d.output.trim())) {
       pendingDraft = {kind,scaffold,taskId};
       ctx.openDialog('开始一份新草稿？','<p>新草稿会替换当前未存档的编辑内容。已存档记录会保留。你可以先返回，存档或导出当前记录。</p>','<button class="button secondary" data-action="close-dialog">返回保留草稿</button><button class="button primary" data-project-action="reset-confirm">清空当前草稿并开始</button>');
     } else resetDraft(kind, scaffold,taskId);
   }
   function runMarkdown(r) {
+    if(r.kind==='practice')return `# 普通练习：${task(r.taskId).title}\n\n日期：${r.date}\n记录性质：使用了课程模板，不作为独立掌握证据。\n状态：${learning().withdrawnRunIds.includes(r.id)?'已撤回':'已保存'}\n\n## 资料\n${r.input}\n\n## 使用的任务说明\n${r.instruction}\n\n## 实际结果\n${r.output}\n\n## 我的检查\n${task(r.taskId).criteria.map((c,i)=>`- [${r.checks[['facts','sources','complete','boundary'][i]]?'x':' '}] ${c.label}`).join('\n')}\n\n## 问题或修改\n${r.notes||'未填写（选填）'}\n`;
     return `# ${kinds[r.kind]}：${task(r.taskId).title}\n\n实际日期：${r.date}\n材料性质：${r.context === 'work' ? '真实工作资料（学员自述）' : '教学或模拟材料'}\n撤回状态：${learning().withdrawnRunIds.includes(r.id) ? '已撤回，不计项目与能力' : '有效记录'}\n提示情况：${r.support === 'independent' ? '独立组织与核查' : '使用提示'}\n记录性质：${['baseline','pretest'].includes(r.kind) ? '基线或学前记录' : '学员自评，待抽评'}\n\n## 资料\n${r.input}\n\n## 任务说明\n${r.instruction}\n\n## 实际成果\n${r.output}\n\n## 来源核查\n${r.sourceCheck}\n\n## 纠错\n${r.correction}\n\n## 缺口与权限决定\n${r.decision}\n\n## 迁移调整\n${r.adaptation}\n\n## 验收自检\n${Object.entries(r.checks).map(([key,value])=>`- [${value?'x':' '}] ${({facts:'事实数字日期',sources:'来源与未知',complete:'交付完整',boundary:'错误处理与权限'})[key]}`).join('\n')}\n\n## 能力自评（0未展示/1提示后/2独立）\n${C.competencies.map(s=>`- ${s.name}：${r.ratings[s.id]}`).join('\n')}\n\n## 时间账\n${timeText(r)}\n原始记录（分钟；null为未记录）：${JSON.stringify(r.timing)}\n同等质量比较后才能判断收益；一次性投入尚未分摊。\n\n## 补充记录\n${r.notes}\n`;
   }
   function packMarkdown() {
@@ -205,11 +210,12 @@ window.createProjectUI = function (ctx) {
     const el = event.target.closest('[data-project-action]'); if (!el) return;
     const l = learning(), action = el.dataset.projectAction;
     if (action === 'stage') {
+      if(el.dataset.stage==='run' && learning().draft.kind==='practice'){requestDraft('independent',false,view.taskId || learning().mainTaskId);return;}
       if(el.dataset.stage === 'run' && view.taskId && view.taskId !== l.draft.taskId) { requestDraft(l.draft.kind,false,view.taskId); return; }
-      if(view.tab==='path' && el.dataset.stage==='demo')view.taskId=l.mainTaskId;
+      if(view.tab==='plan' && el.dataset.stage==='demo')view.taskId=l.mainTaskId;
       view.stage = el.dataset.stage; view.errors = []; go('train');
     }
-    if (action === 'choose-task') { view.taskId = el.dataset.task; view.stage = 'demo'; go('train'); }
+    if (action === 'choose-task') { B.choose(el.dataset.task); }
     if (action === 'baseline') requestDraft('baseline',false,l.mainTaskId);
     if (action === 'pretest') requestDraft('pretest',false,l.mainTaskId);
     if (action === 'start-kind') requestDraft(el.dataset.kind);
