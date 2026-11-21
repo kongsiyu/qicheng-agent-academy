@@ -62,7 +62,7 @@ const simpleRestored=core.normalizeState(JSON.parse(JSON.stringify(simpleState))
 assert.deepEqual(simpleRestored,simpleState,'backup round trip preserves unfilled practice fields and null timing');
 const strictNormal=structuredClone(simpleDraft); strictNormal.kind='normal';
 assert.ok(Q.validateRun(strictNormal,content,simple).some(s=>s.includes('20')),'ordinary practice does not lower the normal-project instruction threshold');
-assert.ok(Q.validateRun(strictNormal,content,simple).some(s=>s.includes('依据')),'normal projects still require source and correction evidence');
+assert.ok(Q.validateRun(strictNormal,content,simple).some(s=>s.includes('依据')),'normal projects still require a conclusion, source and verification result');
 assert.ok(Q.validateRun(strictNormal,content,simple).some(s=>s.includes('四项自检')),'normal projects still require all acceptance checks');
 const wrongSupport=structuredClone(simpleDraft); wrongSupport.support='independent'; simple.draft=wrongSupport;
 assert.match(Q.validateRun(wrongSupport,content,simple).join(' '),/有引导/);
@@ -86,6 +86,34 @@ const priorBeforePractice=Q.getQualityStats(priorState,content), previousPretest
 prior.draft=structuredClone(simpleDraft); Q.archiveRun(prior,content);
 assert.deepEqual(Q.getQualityStats(priorState,content),priorBeforePractice,'saving ordinary practice leaves pretest comparison evidence and its quality summary unchanged');
 assert.deepEqual(prior.runs[0],previousPretest,'ordinary practice preserves the original pretest snapshot');
+const conciseState=core.createState(content), concise=conciseState.learning;
+for(const kind of ['normal','independent','transfer','delayed','assistant']) {
+  const d=draft(kind,['transfer','delayed'].includes(kind)?second:main);
+  d.sourceCheck='结论A对应资料第2段，已经逐项核对内容与原文相符。';
+  d.correction=''; d.decision='';
+  concise.draft=d;
+  assert.deepEqual(Q.validateRun(d,content,concise),[],kind+' can use one substantive verification record without manufactured correction or decision text');
+  const saved=Q.archiveRun(concise,content);
+  assert.equal(saved.correction,''); assert.equal(saved.decision,'');
+}
+const incompleteVerification=draft('normal'); incompleteVerification.sourceCheck='只有结论';
+incompleteVerification.correction=''; incompleteVerification.decision='';
+assert.match(Q.validateRun(incompleteVerification,content,concise).join(' '),/关键结论、对应资料依据和实际核查结果/);
+const unchecked=draft('normal'); unchecked.correction=''; unchecked.decision=''; unchecked.checks.sources=false;
+assert.match(Q.validateRun(unchecked,content,concise).join(' '),/四项自检/,'a concise record still needs all four acceptance checks');
+for(const kind of ['missing','conflict','automation-normal','automation-missing','automation-duplicate']) {
+  const d=draft(kind); d.correction=''; d.decision=''; concise.draft=d;
+  assert.match(Q.validateRun(d,content,concise).join(' '),/具体处理及人工确认依据/,kind+' needs a concrete handling decision');
+  const count=concise.runs.length;
+  assert.throws(()=>Q.archiveRun(concise,content),/具体处理及人工确认依据/);
+  assert.equal(concise.runs.length,count,'missing a required decision cannot append an archive');
+  d.decision='关键字段缺失时先暂停写入，列明缺口并交负责人确认。';
+  assert.deepEqual(Q.validateRun(d,content,concise),[],kind+' accepts a handling decision without forcing an invented correction');
+  Q.archiveRun(concise,content);
+}
+const retained=structuredClone(conciseState); retained.learning.draft.sourceCheck='保留旧核查字段。';
+retained.learning.draft.correction='保留旧记录里的实际纠错内容。'; retained.learning.draft.decision='保留旧记录里的人工处理决定。';
+assert.deepEqual(core.normalizeState(JSON.parse(JSON.stringify(retained)),content,{strict:true}),retained,'simpler requirements preserve every existing evidence field during backup restore');
 learning.pack.choice=long;
 const first=save('normal',main,-14,{support:'guided',context:'work'});
 assert.equal(week(1).done,true);

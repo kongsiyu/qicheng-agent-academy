@@ -166,9 +166,8 @@
     if (!enough(draft.input, 10)) problems.push('请记录实际资料，至少 10 个字符。');
     if (!enough(draft.instruction, 20)) problems.push('请记录实际任务说明，至少 20 个字符。');
     if (!enough(draft.output, 20)) problems.push('请记录实际输出，至少 20 个字符。');
-    if (!enough(draft.sourceCheck, 10)) problems.push('请记录核对了哪条结论及对应资料依据，至少 10 个字符。');
-    if (!enough(draft.correction, 10)) problems.push('请记录发现的问题及修正；若无错误，说明核查依据，至少 10 个字符。');
-    if (!enough(draft.decision, 10)) problems.push('请记录人工判断、暂停或确认的理由，至少 10 个字符。');
+    if (!enough(draft.sourceCheck, 10)) problems.push('请记录一条关键结论、对应资料依据和实际核查结果，至少 10 个字符。');
+    if ((draft.kind === 'missing' || draft.kind === 'conflict' || draft.kind.indexOf('automation-') === 0) && !enough(draft.decision, 10)) problems.push('请记录资料缺口、冲突或流程写入的具体处理及人工确认依据，至少 10 个字符。');
     if (!CHECK_KEYS.every(function (k) { return draft.checks[k]; })) problems.push('请完成事实、来源、完整性与边界四项自检。');
     if (draft.kind === 'transfer' || draft.kind === 'delayed') {
       if (!learning || draft.taskId === learning.mainTaskId) problems.push('迁移与延后复验请选择主线之外的第二项任务。');

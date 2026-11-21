@@ -5,8 +5,12 @@ window.createProjectUI = function (ctx) {
   const Q = window.AgentQualityCore;
   const view = { stage: getState().learning.draft.input ? 'run' : 'demo', errors: [], tab: 'path', taskId: null };
   const learning = () => getState().learning;
+  let observedDraft=learning().draft;
   let lastValidLearning = JSON.stringify(learning());
-  function checkpoint() { lastValidLearning = JSON.stringify(learning()); }
+  function checkpoint() {
+    lastValidLearning = JSON.stringify(learning());
+    if(observedDraft!==learning().draft){observedDraft=learning().draft;view.stage='run';view.taskId=null;}
+  }
   function save() {
     try { Q.normalizeLearning(learning(),C,{strict:true}); }
     catch (error) {
@@ -31,6 +35,7 @@ window.createProjectUI = function (ctx) {
     assistant: '定制助手实测', 'automation-normal': '自动化：正常输入',
     'automation-missing': '自动化：缺字段', 'automation-duplicate': '自动化：重复输入'
   };
+  const R = window.createProjectRunner({C,K,esc,icon,Q,kinds,getLearning:learning,save,toast,copyText,timingFields,redraw:()=>render('train'),backToDemo:()=>{view.stage='demo';render('train');}});
   const list = values => `<ul class="project-list">${values.map(v => `<li>${esc(v)}</li>`).join('')}</ul>`;
   const button = (action, label, extra = '', secondary = false) => `<button type="button" class="button ${secondary ? 'secondary' : 'primary'}" data-project-action="${action}" ${extra}>${label}</button>`;
   const field = (label, key, value, hint = '', options = {}) => `<div class="form-group"><label class="input-label" for="project-${key}">${esc(label)}</label><textarea id="project-${key}" class="form-textarea ${options.tall ? 'tall' : ''}" data-project-field="${key}" data-project-scope="${options.scope || 'draft'}" maxlength="${options.max || 20000}" placeholder="${esc(hint)}">${esc(value)}</textarea>${hint ? `<p class="field-hint">${esc(hint)}</p>` : ''}</div>`;
@@ -64,8 +69,9 @@ window.createProjectUI = function (ctx) {
     return `<div class="week-project"><div class="section-heading"><h3>${week.optional ? '选修项目' : '本周项目'} · ${esc(week.title)}</h3><span class="badge ${status.done ? 'green' : 'neutral'}">${status.done ? '证据齐备 · 待抽评' : '继续练习'}</span></div><p>${esc(week.goal)}</p>${list(week.deliverables)}${status.missing.length ? `<details class="task-faq"><summary>还需要哪些证据？</summary>${list(status.missing)}</details>` : ''}<p class="field-hint">建议投入：学习 ${week.minutes.learn} 分钟＋实践 ${week.minutes.practice} 分钟＋核查 ${week.minutes.verify} 分钟。</p>${action}</div>`;
   }
   function pathView() {
-    const l = learning(), s = quality();
-    return `<section class="surface-card project-section"><h2>选一件你熟悉的工作，持续练深</h2><p>先选输入可获得、结果能核对的任务。使用自己的工具执行；站内保存材料、判断与结果。</p><div class="form-group"><label class="input-label" for="project-main-task">我的主线任务</label><select class="form-select" id="project-main-task" data-project-main>${C.tasks.map(t => `<option value="${t.id}" ${l.mainTaskId === t.id ? 'selected' : ''}>${esc(t.title)}</option>`).join('')}</select></div>${field('为什么选这个任务？', 'choice', l.pack.choice, '说明任务频率、可用输入、验收办法，以及核查成本是否值得。', { scope: 'pack' })}<div class="task-actions">${button('pretest', '先做一次学前尝试')}${button('baseline', '记录人工流程耗时基线','',true)}${button('stage', '从完整示范开始', 'data-stage="demo"', true)}</div></section>${note(comparisonNotice())}<div class="project-weeks">${C.weeks.map(w => `<section class="surface-card">${weekCard(w.id)}<details class="project-week-steps"><summary>本周怎么做</summary>${list(w.steps)}<p class="field-hint">验收时逐项检查：</p>${list(w.checks)}</details></section>`).join('')}</div><section class="surface-card project-section"><h2>结课一周后，再试一次</h2><p>${s.delayed.done ? '延后复验的自评证据已记录，可导出供抽评。' : s.delayed.dueDate ? `建议从 ${esc(s.delayed.dueDate)} 起，用第二个任务的新材料复验。` : '完成结课独立任务后，系统会显示一周后复验日期。'}</p>${list(s.delayed.missing)}${button('start-kind', '准备延后复验', 'data-kind="delayed"', true)}</section>${note('证据齐备表示学习记录满足要求。事实是否正确、判断是否独立，需要结合材料抽评；课程理解题单独记录。')}`;
+    const s=quality(), goal=C.goals.find(g=>g.id===getState().profile.goalId);
+    const next=s.weeks.slice(0,goal.weeks).find(w=>!w.done)||s.weeks[goal.weeks-1];
+    return `<section class="surface-card project-section"><p class="eyebrow">一次只做当前这一项</p><h2>接下来，从这里继续</h2>${weekCard(next.id)}</section><details class="project-details"><summary>查看完整四周计划与选修</summary><div class="project-weeks">${C.weeks.map(w=>`<section class="surface-card">${weekCard(w.id)}<details class="project-week-steps"><summary>怎么做</summary>${list(w.steps)}</details></section>`).join('')}</div></details><details class="project-details"><summary>更换主线任务</summary><label class="input-label" for="project-main-task">主线任务</label><select class="form-select" id="project-main-task" data-project-main>${C.tasks.map(t=>`<option value="${t.id}" ${learning().mainTaskId===t.id?'selected':''}>${esc(t.title)}</option>`).join('')}</select><p class="field-hint">原有任务包与记录都会保留；换任务后应重新确认用途和资料。</p></details><details class="project-details"><summary>课程前后对照与延后复验</summary><p>${esc(comparisonNotice())}</p><div class="task-actions">${button('pretest','做一次学前尝试','',true)}${button('baseline','记录人工流程基线','',true)}${button('start-kind','准备延后复验','data-kind="delayed"',true)}</div><p>${esc(s.delayed.dueDate?'延后复验建议从 '+s.delayed.dueDate+' 起完成。':'先完成独立交付，再安排一周后的复验。')}</p></details>`;
   }
   function stageTabs() {
     return `<div class="project-stages" role="group" aria-label="练习阶段">${[['demo','1 看示范'],['diagnose','2 做判断'],['scaffold','3 减少提示'],['run','4 独立与复验']].map(([id,label]) => button('stage', label, `data-stage="${id}" aria-pressed="${view.stage === id}"`, view.stage !== id)).join('')}</div>`;
@@ -85,19 +91,11 @@ window.createProjectUI = function (ctx) {
     if (d.kind.startsWith('automation-')) return C.electives.automation;
     return C.practice[d.taskId].cases[d.kind];
   }
-  function exerciseSelector() {
-    const d = learning().draft;
-    return `<div class="form-row"><div class="form-group"><label class="input-label" for="project-run-task">这次练哪个任务</label><select class="form-select" id="project-run-task" data-project-select="taskId">${C.tasks.map(t => `<option value="${t.id}" ${d.taskId === t.id ? 'selected' : ''}>${esc(t.title)}</option>`).join('')}</select></div><div class="form-group"><label class="input-label" for="project-kind">本次练习</label><select class="form-select" id="project-kind" data-project-select="kind">${Object.entries(kinds).map(([id,label]) => `<option value="${id}" ${d.kind === id ? 'selected' : ''}>${label}</option>`).join('')}</select></div></div>`;
-  }
   function timingFields(d) {
     const labels = { manual:'相似人工任务总投入', prepare:'准备资料', operate:'操作与交互', wait:'阻塞等待', review:'核查', rework:'修改与返工', setup:'一次性学习或搭建' };
     return `<details class="project-details"><summary>完整时间账 · 第 4 周需要填写</summary><p class="field-hint">单位为分钟。空白表示未记录，确实没有耗时请填 0。阻塞等待指无法并行做其他工作的等待；已重叠的时间不要重复计入。</p><div class="timing-grid">${Object.entries(labels).map(([id,label]) => `<div class="form-group"><label class="input-label" for="time-${id}">${label}</label><input class="form-input" id="time-${id}" type="number" min="0" max="10080" step="0.1" data-project-time="${id}" value="${d.timing[id] ?? ''}"></div>`).join('')}</div><p class="field-hint">先确认人工与 Agent 成果达到相同标准，再比较完整投入。一次性投入单列；记录多次后再判断是否值得复用。</p></details>`;
   }
-  function runView() {
-    const d = learning().draft, t = task(d.taskId), c = caseFor(d), baseline = d.kind === 'baseline', pretest = d.kind === 'pretest';
-    const formal = ['independent','transfer','delayed'].includes(d.kind);
-    return `<h2>${esc(kinds[d.kind])} · 留下能核查的证据</h2>${exerciseSelector()}<div class="form-row"><div class="form-group"><label class="input-label" for="project-date">实际执行日期</label><input class="form-input" type="date" id="project-date" data-project-field="date" max="${K.today()}" value="${esc(d.date)}"></div><div class="form-group"><label class="input-label" for="project-support">这次用了多少课程提示</label><select class="form-select" id="project-support" data-project-select="support" ><option value="guided" ${d.support === 'guided' ? 'selected' : ''}>参考了模板或他人提示</option><option value="independent" ${d.support === 'independent' ? 'selected' : ''}>独立组织与核查（可以使用 Agent）</option></select></div></div><div class="form-group"><label class="input-label" for="project-context">本次资料性质</label><select class="form-select" id="project-context" data-project-select="context"><option value="teaching" ${d.context === 'teaching' ? 'selected' : ''}>教学材料或模拟练习</option><option value="work" ${d.context === 'work' ? 'selected' : ''}>真实工作资料（已确认可使用并脱敏）</option></select></div><p class="field-hint">如实记录用过的提示。引导下的结课尝试可以留档，独立门槛需要未用课程提示的新尝试。选择类型会保留文本并清除验收勾选；开始新任务请先存档再新建。</p>${view.errors.length ? `<div class="project-errors" role="alert" tabindex="-1"><strong>先补齐这些内容</strong>${list(view.errors)}</div>` : ''}${c ? `<details class="project-case" ${baseline || formal ? 'open' : ''}><summary>${esc(c.title)} · 新练习材料</summary>${c.brief ? `<p>${esc(c.brief)}</p>` : ''}${c.input ? `<pre class="output-preview">${esc(c.input)}</pre>${button('load-case','用这份材料替换输入','',true)}` : ''}${c.steps ? list(c.steps) : ''}${c.testCases ? `<h3>需要实际测试</h3>${c.testCases.map(x => `<div class="task-challenge"><h4>${esc(x.label)}</h4><p>${esc(x.input)}</p><p>检查：${esc(x.expected)}</p></div>`).join('')}` : ''}${c.deliverables ? list(c.deliverables) : ''}</details>` : ''}${formal ? note('本轮不显示参考任务说明或示例成果。请先独立组织工作，再带回结果。站内材料练习应标为教学练习，真实工作记录请使用自己的脱敏资料。') : ''}${field('1. 本次资料与必要背景', 'input', d.input, '记录来源、版本、日期与范围。可用上面的练习材料，也可使用自己的脱敏资料。', { max: 100000 })}<label class="button small secondary upload-label">${icon('upload')} 导入 TXT、MD 或 CSV<input type="file" data-project-upload accept=".txt,.md,.csv" hidden></label><p class="field-hint">PDF 请在常用 Agent 中读取并检查页数、表格和扫描文字；在这里保存必要摘录与页码。本站不解析 PDF。</p>${field(baseline ? '2. 我原有的处理方法' : '2. 我编写的任务说明', 'instruction', d.instruction, '说明目标、背景、资料、限制、交付格式和验收办法。', { tall:true })}${button('copy-instruction','复制我的任务说明','',true)}${field(baseline ? '3. 我按原有方式完成的结果' : '3. Agent 的实际输出', 'output', d.output, baseline ? '先不用 Agent，按原有方式完成，记录结果和人工总耗时。' : '在自己的 Agent 中执行后粘贴成果；静态示例不能代替本次执行。', { tall:true, max:200000 })}${pretest ? note('学前尝试允许使用 Agent。请先按目前的方法完成，不查看课程示范；核查、决定和自评能写多少写多少，不会的可以留空。此记录供前后比较，不计能力进度。') : ''}${baseline ? note('人工基线用于比较工作耗时。先不用 Agent，按原有方法完成；将完整人工投入记入时间账的人工基线项。它与学前 Agent 能力尝试分别保存。') : `<section class="evidence-fields"><h3>4. 记录三个关键判断</h3>${field('一条重要结论，你怎样核查？','sourceCheck',d.sourceCheck,'写出结论、可定位的原文或计算过程，以及核查结果。')}${field('你发现了什么问题，怎样处理？','correction',d.correction,'说明具体错误与修改；若没有发现错误，记录核查对象与依据，不必制造错误。')}${field('缺口和权限，怎样决定？','decision',d.decision,'指出未知、冲突或需人工确认的动作；说明继续、询问、暂停或缩小范围的依据。')}${['transfer','delayed'].includes(d.kind) ? field('迁移后，哪些可以沿用，哪些必须调整？','adaptation',d.adaptation,'结合这次的新受众、资料、口径或权限，说明具体变化。') : ''}<h3>5. 对照资料验收</h3><div class="checklist">${[['facts','关键事实、数字与日期已核对'],['sources','重要结论有可定位依据，未知已标注'],['complete','交付完整，满足本次用途与限制'],['boundary','关键错误已处理，写入或发送边界明确']].map(([id,label]) => `<label class="check-item"><input type="checkbox" data-project-check="${id}" ${d.checks[id] ? 'checked' : ''}><span>${label}</span></label>`).join('')}</div><details class="project-details"><summary>八项能力自评 · 结合本次表现填写</summary><p class="field-hint">只评本次实际展示的能力；参考课程提示做到最高记为 1。自评证据可导出请同事或教师抽评。</p>${C.competencies.map(s => `<div class="rating-row"><label for="rating-${s.id}">${esc(s.name)}<small>${esc(s.evidence)}</small></label><select class="form-select" id="rating-${s.id}" data-project-rating="${s.id}">${[['0','本次未展示'],['1','提示后做到'],['2','独立做到']].map(([value,label]) => `<option value="${value}" ${value==='2' && d.support==='guided' ? 'disabled' : ''} ${Number(value) === d.ratings[s.id] ? 'selected' : ''}>${label}</option>`).join('')}</select></div>`).join('')}</details></section>`}${timingFields(d)}${field(d.kind === 'assistant' ? '实测记录：正常、未知、越界问题的结果' : d.kind.startsWith('automation-') ? '实测记录：触发、映射、审核、写入与日志' : '补充记录（选填）','notes',d.notes,d.kind === 'assistant' ? '记录助手工具与知识版本、三类测试问题、实际回答、发现的问题和修正后结果。至少 30 字。' : d.kind.startsWith('automation-') ? '记录外部工具、字段对应、分支、人工审核、实际写入或停止结果、去重依据和失败日志。至少 30 字。' : '可记录求助、资料限制、失败情况或下一次改进。')}<div class="task-actions">${button('archive',baseline ? '保存人工流程基线' : pretest ? '保存学前尝试' : '存档本次练习证据')}${button('new-draft','新建草稿','',true)}</div><p class="field-hint" id="project-save-status">输入会保存在当前浏览器。存档后保留独立快照；后续修改草稿不会改变历史记录。</p>`;
-  }
+  function runView() { return R.render(); }
   function trainView() {
     const t = task(view.taskId || learning().draft.taskId), p = C.practice[t.id];
     if(learning().draft.kind==='practice' && view.stage==='run')view.stage='demo';
@@ -112,9 +110,13 @@ window.createProjectUI = function (ctx) {
     const runs = learning().runs;
     return `${note('普通练习与独立验证分别记录。可以导出，也可以撤回有误的自检。')}<div class="task-actions"><a class="button primary" href="#/project/start">继续练习</a>${button('export-review','导出完整评审包','',true)}</div>${runs.length ? `<div class="project-records">${runs.slice().reverse().map(r => `<article class="surface-card project-section"><div class="section-heading"><h2>${esc(kinds[r.kind])} · ${esc(task(r.taskId).title)}</h2><span class="badge neutral">${learning().withdrawnRunIds.includes(r.id) ? '已撤回自评' : r.kind==='practice' ? '普通练习 · 已保存' : ['baseline','pretest'].includes(r.kind) ? '基线或学前记录' : '独立验证 · 自评记录'}</span></div><p class="muted">${esc(r.date)} · ${r.kind==='practice' ? '普通练习' : r.context === 'work' ? '真实工作资料（自述）' : '教学或模拟材料'} · ${r.support === 'independent' ? '独立组织与核查' : '使用课程或他人提示'}</p><pre class="output-preview">${esc(r.output)}</pre><p class="field-hint">${esc(r.kind==='practice'?'已确认 '+Object.values(r.checks).filter(Boolean).length+' / 4 项自检':timeText(r))}</p><details class="project-details"><summary>查看本次材料与判断</summary><h3>资料</h3><pre class="output-preview">${esc(r.input)}</pre><h3>任务说明</h3><pre class="output-preview">${esc(r.instruction)}</pre>${[['来源核查',r.sourceCheck],['纠错记录',r.correction],['缺口与权限',r.decision],['迁移调整',r.adaptation],['补充记录',r.notes]].filter(x=>x[1]).map(([title,value])=>`<h3>${title}</h3><p class="preserve-text">${esc(value)}</p>`).join('')}</details>${button('export-run','导出这次记录',`data-run="${esc(r.id)}"`,true)}${learning().withdrawnRunIds.includes(r.id) ? '' : button('withdraw','撤回这次自检',`data-run="${esc(r.id)}"`,true)}</article>`).join('')}</div>` : `<div class="empty-state"><h2>还没有保存的练习</h2><p>先跟着三步做一次练习，资料和任务说明已经准备好。</p></div>`}`;
   }
+  const packSteps=[['choice','这套方法适合做什么？','说明用途、适用情况和需要保留给人的判断。'],['materials','开始前要准备什么资料？','写清来源、版本、日期和必要背景；不知道的保留待确认。'],['instruction','别人可以怎样交代任务？','保存可复用说明，把每次变化的对象、日期或资料设为占位。'],['rubric','拿到结果后，怎么检查？','写出具体检查动作和参照材料。'],['recovery','遇到问题时怎么办？','记录真实遇到的异常与处理方法，没有验证的不要写成已验证。'],['handoff','别人试用后，有什么反馈？','填写真实接手者、使用材料、卡点和修改；尚未试用可以留空。']];
+  let packIndex=null;
   function packView() {
-    const p = learning().pack;
-    return `<section class="surface-card project-section"><h2>让另一位同事也能照着完成</h2>${p && learning().packTaskId !== learning().mainTaskId ? `<div class="project-errors"><p>当前任务包属于“${esc(task(learning().packTaskId).title)}”。主线已改变，请先修改任务包，再确认适用于新主线。</p>${button('bind-pack','确认任务包已修订并用于当前主线','',true)}</div>` : ''}<p>把主线任务的方法写成可使用的说明。让同事用一份新材料试一次，再补充隐含要求。</p>${[['choice','任务选择与使用边界','适合什么情况？输入输出是什么？何时不值得使用？'],['materials','资料清单','名称、来源、版本、有效日期、字段口径和必要背景。'],['instruction','可复用任务说明','用明确占位位置标记每次要替换的对象、日期、资料和要求。'],['rubric','验收表与核查办法','具体检查什么、到哪里核查，哪些错误必须处理。'],['recovery','异常处理与操作说明','缺资料、冲突、读取失败、算错或执行失败时如何继续。'],['handoff','他人使用后的反馈','记录谁在何时使用什么新材料、卡在哪里、结果怎样，以及你据此做了什么修改。']].map(([key,label,hint])=>field(label,key,p[key],hint,{scope:'pack'})).join('')}<div class="task-actions">${button('export-pack','导出岗位任务包')}${button('use-pack','把我的任务说明带入草稿','',true)}</div></section>`;
+    const p=learning().pack;
+    if(packIndex===null)packIndex=Math.max(0,packSteps.findIndex(([key])=>p[key].trim().length<10));
+    const [key,title,hint]=packSteps[packIndex];
+    return `<section class="surface-card project-section"><p class="eyebrow">任务包 · ${packIndex+1} / ${packSteps.length}</p><h2>${esc(title)}</h2><p>一次补充一项，之前的内容已经保留。</p>${learning().packTaskId!==learning().mainTaskId?`<div class="project-errors"><p>当前任务包属于另一任务。修订后再确认归属。</p>${button('bind-pack','确认用于当前主线','',true)}</div>`:''}${field(title,key,p[key],hint,{scope:'pack'})}<div class="guided-footer">${button('pack-back','上一步','',true)}${packIndex<packSteps.length-1?button('pack-next','保存并继续'):`<a class="button primary" href="#/project/plan">保存，回到计划</a>`}</div><details class="guided-optional"><summary>其他操作</summary><div class="task-actions">${button('export-pack','导出任务包','',true)}${button('use-pack','带入下一次练习','',true)}</div><p class="field-hint">每次输入都会自动保存；未完成也可以稍后回来。</p></details></section>`;
   }
   function reviewView() {
     return `<section class="surface-card project-section"><h2>怎样判断学员是否掌握</h2><p>自评时按本次材料判断，抽评时请评审先对照原始材料。不要把提示后完成记作独立完成。</p><div class="rubric-levels"><div><strong>0 · 尚未体现</strong><p>缺少动作或依据，结果有关键问题。</p></div><div><strong>1 · 提示后做到</strong><p>依靠模板、教师或同事提醒完成。</p></div><div><strong>2 · 独立做到</strong><p>面对新材料，自行组织、核查并处理异常。</p></div></div>${C.competencies.map(s=>`<details class="project-details"><summary>${esc(s.name)}</summary><p>${esc(s.performance)}</p><p>证据：${esc(s.evidence)}</p><div class="task-actions">${s.lessonIds.map(id=>`<a class="text-link" href="#/lesson/${id}">${esc(C.lessons.find(l=>l.id===id)?.title || id)}</a>`).join('')}</div></details>`).join('')}<div class="project-errors"><strong>需要先处理的关键问题</strong><p>编造事实或来源、错误计算改变结论、漏掉重要条件、越权写入或发送，均应处理后再验收。语言和排版的优点不能抵消这些问题。</p></div><h3>试学怎样开展</h3><p>先用少量目标用户观察学习障碍，再做学前任务、结课新材料任务和一周后迁移。评审先共同评价几份作品，校准标准。记录独立完成、关键错误、求助和完整耗时；效果数据来自真实试学。</p><h3>设计参考</h3><div class="project-sources">${(C.sources||[]).map(s=>`<p><a class="text-link" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title)}</a><small>${esc(s.use)} · 复查 ${esc(s.reviewedAt)}</small></p>`).join('')}</div></section>`;
@@ -123,6 +125,13 @@ window.createProjectUI = function (ctx) {
     checkpoint();
     if(['path','start'].includes(tab)) {view.tab='start';B.render();return;}
     view.tab = ['plan','train','records','pack','review'].includes(tab) ? tab : 'plan';
+    if(view.tab==='train'&&view.stage==='run'&&learning().draft.kind!=='practice'){
+      const t=task(learning().draft.taskId);
+      main.innerHTML=`<div class="guided-workspace"><div class="page-heading guided-heading"><div><p class="eyebrow">按步骤继续 · ${esc(kinds[learning().draft.kind])}</p><h1>${esc(t.title)}</h1></div><a class="text-link" href="#/project/plan">返回学习计划</a></div><section class="surface-card project-section guided-panel">${R.render()}</section></div>`;return;
+    }
+    if(view.tab==='pack'){
+      main.innerHTML=`<div class="guided-workspace"><div class="page-heading guided-heading"><div><p class="eyebrow">逐项整理，随时保存</p><h1>制作我的任务包</h1></div><a class="text-link" href="#/project/plan">返回学习计划</a></div>${packView()}</div>`;return;
+    }
     main.innerHTML = `<div class="page-heading"><div><p class="eyebrow">按需深入</p><h1>${view.tab==='records'?'我的练习记录':'学习计划与独立验证'}</h1><p>${view.tab==='records'?'每次尝试都单独保存，可以回来继续检查。':'做过第一次练习后，再按需要制作任务包、比较省时或验证独立能力。'}</p></div><a class="button secondary" href="#/project/start">回到三步练习</a></div><nav class="project-tabs" aria-label="项目页面">${[['plan','四周计划'],['train','示范与验证'],['records','练习记录'],['pack','任务包'],['review','评价标准']].map(([id,label])=>`<a href="#/project/${id}" class="${id===view.tab?'active':''}" ${id===view.tab?'aria-current="page"':''}>${label}</a>`).join('')}</nav>${view.tab === 'plan' ? pathView() : view.tab === 'train' ? trainView() : view.tab === 'records' ? recordView() : view.tab === 'pack' ? packView() : reviewView()}`;
   }
   function go(tab) {
@@ -137,7 +146,7 @@ window.createProjectUI = function (ctx) {
       d.input = C.practice[d.taskId].scaffold.input;
       d.instruction = C.practice[d.taskId].scaffold.instructionStarter;
     }
-    l.draft = d; view.taskId = d.taskId; view.errors = []; view.stage = 'run'; save(); go('train');
+    l.draft = d; view.taskId = d.taskId; view.errors = []; view.stage = 'run'; R.reset(); save(); go('train');
   }
   let pendingDraft = null;
   function requestDraft(kind, scaffold = false, taskId = null) {
@@ -147,6 +156,35 @@ window.createProjectUI = function (ctx) {
       pendingDraft = {kind,scaffold,taskId};
       ctx.openDialog('开始一份新草稿？','<p>新草稿会替换当前未存档的编辑内容。已存档记录会保留。你可以先返回，存档或导出当前记录。</p>','<button class="button secondary" data-action="close-dialog">返回保留草稿</button><button class="button primary" data-project-action="reset-confirm">清空当前草稿并开始</button>');
     } else resetDraft(kind, scaffold,taskId);
+  }
+  function openLegacy(id) {
+    const t=task(id);if(!t)return;
+    const l=learning(), r=getState().tasks[id], d=l.draft;
+    if(d.taskId===id && (d.input.trim()||d.output.trim())){
+      if(d.kind==='practice'){B.choose(id);return;}
+      view.stage='run';R.reset();go('train');return;
+    }
+    main.innerHTML=`<div class="page-heading"><div><p class="eyebrow">继续以前的练习</p><h1>${esc(t.title)}</h1><p>旧资料和结果会保留，接下来按步骤继续。</p></div></div><section class="surface-card project-section"><h2>从已保存的内容继续</h2><p>${r.input||r.output?'已经找到这项任务的历史资料或结果。':'这项任务还没有历史资料，可以用现成示例开始。'}</p>${button('legacy-import','按步骤继续',`data-task="${id}"`)}<a class="button secondary" href="#/artifacts">返回成果记录</a><p class="field-hint">如果另一份草稿尚未保存，会先请你确认，避免覆盖。</p></section>`;
+  }
+  function importLegacy(id, confirmed=false) {
+    const l=learning(), current=l.draft;
+    const archived=l.runs.some(run=>Object.keys(current).every(key=>JSON.stringify(run[key])===JSON.stringify(current[key])));
+    if(!confirmed&&!archived&&(current.input.trim()||current.instruction.trim()||current.output.trim())){
+      ctx.openDialog('先保留当前草稿','<p>继续这项历史任务会替换当前编辑中的草稿。原历史成果仍然保留，可以先返回保存当前草稿。</p>',`<button class="button secondary" data-action="close-dialog">返回保留草稿</button><button class="button primary" data-project-action="legacy-confirm" data-task="${id}">继续历史任务</button>`);return;
+    }
+    const old=getState().tasks[id], t=task(id), fresh=Q.blankDraft(id);
+    Object.assign(fresh,{kind:'practice',input:old.input||C.practice[id].cases.normal.input,instruction:t.prompt,output:old.mode==='practice'?old.output:'',notes:old.notes,support:'guided'});
+    l.draft=fresh;save();B.choose(id);
+  }
+  function usePack(confirmed=false) {
+    const l=learning(), d=l.draft;
+    if(!l.pack.instruction.trim())return toast('先在任务包中保存一份任务说明。');
+    const archived=l.runs.some(run=>Object.keys(d).every(key=>JSON.stringify(run[key])===JSON.stringify(d[key])));
+    if(!confirmed&&!archived&&(d.input.trim()||d.instruction.trim()||d.output.trim())){
+      ctx.openDialog('先保留当前草稿','<p>使用任务包会开始一次新练习，当前编辑内容不会带入。可以先返回保存当前草稿，再继续。</p>','<button class="button secondary" data-action="close-dialog">返回保留草稿</button><button class="button primary" data-project-action="use-pack-confirm">用任务包开始新练习</button>');return;
+    }
+    const fresh=Q.blankDraft(l.packTaskId);fresh.instruction=l.pack.instruction;
+    l.draft=fresh;view.taskId=fresh.taskId;view.stage='run';R.reset('materials');save();go('train');
   }
   function runMarkdown(r) {
     if(r.kind==='practice')return `# 普通练习：${task(r.taskId).title}\n\n日期：${r.date}\n记录性质：使用了课程模板，不作为独立掌握证据。\n状态：${learning().withdrawnRunIds.includes(r.id)?'已撤回':'已保存'}\n\n## 资料\n${r.input}\n\n## 使用的任务说明\n${r.instruction}\n\n## 实际结果\n${r.output}\n\n## 我的检查\n${task(r.taskId).criteria.map((c,i)=>`- [${r.checks[['facts','sources','complete','boundary'][i]]?'x':' '}] ${c.label}`).join('\n')}\n\n## 问题或修改\n${r.notes||'未填写（选填）'}\n`;
@@ -165,7 +203,7 @@ window.createProjectUI = function (ctx) {
     const el = event.target, l = learning();
     if (el.dataset.projectField) {
       const target = el.dataset.projectScope === 'pack' ? l.pack : l.draft;
-      if (target === l.draft && ['input','instruction','output','sourceCheck','correction','decision','adaptation','notes'].includes(el.dataset.projectField)) invalidateDraft();
+      if (target === l.draft && (['input','instruction','output','sourceCheck','correction','decision','adaptation'].includes(el.dataset.projectField) || (el.dataset.projectField==='notes'&&(l.draft.kind==='assistant'||l.draft.kind.startsWith('automation-'))))) invalidateDraft();
       target[el.dataset.projectField] = el.value; save();
     }
     if (el.dataset.projectTime) {
@@ -216,6 +254,9 @@ window.createProjectUI = function (ctx) {
       view.stage = el.dataset.stage; view.errors = []; go('train');
     }
     if (action === 'choose-task') { B.choose(el.dataset.task); }
+    if (action === 'legacy-task') openLegacy(el.dataset.task);
+    if (action === 'legacy-import') importLegacy(el.dataset.task);
+    if (action === 'legacy-confirm') {ctx.closeDialog();importLegacy(el.dataset.task,true);}
     if (action === 'baseline') requestDraft('baseline',false,l.mainTaskId);
     if (action === 'pretest') requestDraft('pretest',false,l.mainTaskId);
     if (action === 'start-kind') requestDraft(el.dataset.kind);
@@ -236,7 +277,7 @@ window.createProjectUI = function (ctx) {
     }
     if (action === 'archive') {
       view.errors = Q.validateRun(l.draft,C,l);
-      if (view.errors.length) { render('train'); main.querySelector('.project-errors')?.focus(); return; }
+      if (view.errors.length) { R.showErrors(view.errors); render('train'); main.querySelector('.project-errors')?.focus(); return; }
       try { Q.archiveRun(l,C); const saved = save(); view.errors = []; toast(saved === false ? '浏览器未能持久保存，请立即导出评审包或完整备份。' : '本次证据已独立存档，可在记录页导出抽评。'); go('records'); }
       catch (error) { toast(error.message || '未能存档，请先导出备份。'); }
     }
@@ -245,11 +286,14 @@ window.createProjectUI = function (ctx) {
       await copyText(l.draft.instruction);
     }
     if (action === 'bind-pack') { l.packTaskId = l.mainTaskId; save(); render('pack'); toast('任务包已归属于当前主线，请确认六项内容均已修订。'); }
-    if (action === 'use-pack') { invalidateDraft(); l.draft.instruction = l.pack.instruction; save(); view.stage = 'run'; go('train'); }
+    if (action === 'pack-next') {packIndex=Math.min(packSteps.length-1,packIndex+1);save();render('pack');window.scrollTo({top:0,behavior:'instant'});}
+    if (action === 'pack-back') {packIndex=Math.max(0,packIndex-1);render('pack');window.scrollTo({top:0,behavior:'instant'});}
+    if (action === 'use-pack') usePack();
+    if (action === 'use-pack-confirm') {ctx.closeDialog();usePack(true);}
     if (action === 'withdraw' && !l.withdrawnRunIds.includes(el.dataset.run)) { l.withdrawnRunIds.push(el.dataset.run); save(); render('records'); toast('已撤回这次自评，原记录保留，项目与能力证据已重新计算。'); }
     if (action === 'export-pack') download(`启程-岗位任务包-${K.today()}.md`,packMarkdown(),'text/markdown');
     if (action === 'export-run') { const r = l.runs.find(x=>x.id===el.dataset.run); if(r)download(`启程-练习记录-${r.date}.md`,runMarkdown(r),'text/markdown'); }
     if (action === 'export-review') exportReview();
   });
-  return { render, dashboard, skillCards, weekCard, exportReview, checkpoint };
+  return { render, dashboard, skillCards, weekCard, exportReview, checkpoint, openLegacy };
 };

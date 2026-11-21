@@ -1,1 +1,1 @@
-{"name":"启程 · Agent Academy","short_name":"启程","description":"在本地保存的 AI Agent 学习空间","start_url":"./index.html#/overview","display":"standalone","background_color":"#f7f6f2","theme_color":"#214e40","icons":[{"src":"./favicon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}
+{"name":"启程 · Agent Academy","short_name":"启程","description":"在本地保存的 AI Agent 学习空间","start_url":"./index.html#/overview","display":"standalone","background_color":"#171b24","theme_color":"#171b24","icons":[{"src":"./favicon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}

@@ -42,8 +42,8 @@
     state = K.createState(C);
     loadWarning = '原有学习记录未能读取。你仍可使用课程，也可从备份恢复记录。';
   }
-  const ui = {filter:'全部',search:'',choices:{},feedback:{},taskModes:{},steps:{},challenges:{}};
-  let toastTimer, saveTimer, pendingBackup;
+  const ui = {filter:'全部',search:'',choices:{},feedback:{}};
+  let toastTimer, pendingBackup;
   const main = $('#main');
   const dialog = $('#app-dialog');
   const lessonById = id => C.lessons.find(item => item.id === id);
@@ -83,14 +83,14 @@
     const links = [['overview','home','学习总览'],['route','route','学习路线'],['tasks','lab','任务实验室'],['artifacts','folder','我的成果'],['settings','settings','学习设置']];
     const savedPractices = state.learning.runs.filter(run=>!state.learning.withdrawnRunIds.includes(run.id) && !['baseline','pretest'].includes(run.kind)).length;
     $('#nav-links').innerHTML = links.map(([id,ic,label]) => `<a class="nav-item ${active===id?'active':''}" href="#/${id}" ${active===id?'aria-current="page"':''} aria-label="${label}">${icon(ic)}<span class="nav-label">${label}</span>${id==='artifacts'&&savedPractices?`<span class="nav-count">${savedPractices}</span>`:''}</a>`).join('');
-    $('#breadcrumb').innerHTML = `我的学习空间 <span>/</span> <strong>${section==='project'?(['start','path'].includes(location.hash.split('/')[2])?'动手练习':'学习计划与记录'):links.find(x=>x[0]===active)?.[2] || '学习总览'}</strong>`;
-    $('#sidebar-progress').innerHTML = ['overview','tasks','artifacts'].includes(section) || /^#\/project\/(start|path|records)/.test(location.hash) ? `<div class="sidebar-practice-note"><strong>${savedPractices ? `已保存 ${savedPractices} 次练习` : '先完成一次练习'}</strong><p>准备资料，交给 Agent，再核对结果。</p><a class="text-link" href="#/route">之后再学课程 ${icon('arrow')}</a></div>` : `<div class="sidebar-progress-heading"><span>课程与项目记录</span><strong>${stats.percent}%</strong></div>${bar(stats.percent)}<p class="sidebar-note">${esc(stats.goal.title)}<br>${stats.completedLessons}/${stats.requiredLessons.length} 课理解检查 · ${stats.weeks.slice(0,stats.goal.weeks).filter(w=>w.done).length}/${stats.goal.weeks} 周项目证据</p>`;
+    $('#breadcrumb').innerHTML = `我的学习空间 <span>/</span> <strong>${section==='task'?'动手练习':section==='project'?(['start','path'].includes(location.hash.split('/')[2])?'动手练习':'学习计划与记录'):links.find(x=>x[0]===active)?.[2] || '学习总览'}</strong>`;
+    $('#sidebar-progress').innerHTML = ['overview','tasks','task','artifacts'].includes(section) || /^#\/project\/(start|path|records|train|pack)/.test(location.hash) ? `<div class="sidebar-practice-note"><strong>${savedPractices ? `已保存 ${savedPractices} 次练习` : '先完成一次练习'}</strong><p>准备资料，交给 Agent，再核对结果。</p><a class="text-link" href="#/route">之后再学课程 ${icon('arrow')}</a></div>` : `<div class="sidebar-progress-heading"><span>课程与项目记录</span><strong>${stats.percent}%</strong></div>${bar(stats.percent)}<p class="sidebar-note">${esc(stats.goal.title)}<br>${stats.completedLessons}/${stats.requiredLessons.length} 课理解检查 · ${stats.weeks.slice(0,stats.goal.weeks).filter(w=>w.done).length}/${stats.goal.weeks} 周项目证据</p>`;
   }
   function taskCard(task) {
     return `<article class="task-card surface-card beginner-task-card"><div class="task-card-top"><div class="task-icon">${icon(task.id)}</div>${task.id==='meeting'?'<span class="badge green">首次推荐</span>':''}</div><h3 class="task-title">${esc(task.title)}</h3><p class="task-description">${esc(task.summary)}</p><div class="task-footer"><span>约 ${task.minutes} 分钟 · 示例已备好</span><a class="button small secondary" href="#/project/start" data-project-action="choose-task" data-task="${task.id}">开始练习 ${icon('arrow')}</a></div></article>`;
   }
   function heroArt() {
-    return `<svg viewBox="0 0 240 260" fill="none" role="img" aria-label="从目标出发，沿着路线逐步完成任务"><circle cx="132" cy="128" r="88" fill="#e2ebd4"/><circle cx="132" cy="128" r="67" stroke="#c8d7b7" stroke-dasharray="3 7"/><path d="M63 183c0-52 111 10 111-54S72 125 72 72" stroke="#92ad78" stroke-width="2" stroke-dasharray="5 6"/><rect x="36" y="42" width="100" height="59" rx="12" fill="#fffdf6" transform="rotate(-7 36 42)"/><rect x="52" y="57" width="30" height="5" rx="2.5" fill="#9caf86"/><rect x="52" y="71" width="60" height="4" rx="2" fill="#d9e2d0"/><rect x="52" y="82" width="46" height="4" rx="2" fill="#d9e2d0"/><rect x="113" y="112" width="95" height="63" rx="12" fill="#fffdf6" transform="rotate(8 113 112)"/><circle cx="138" cy="138" r="11" fill="#e4eed9"/><path d="m133 138 4 4 7-8" stroke="#557c41" stroke-width="2" stroke-linecap="round"/><path d="M158 135h29m-29 10h22" stroke="#d9e2d0" stroke-width="4" stroke-linecap="round"/><circle cx="66" cy="192" r="24" fill="#e7ba8f"/><path d="m55 192 7 7 15-16" stroke="#fffdf6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="190" cy="56" r="5" fill="#d7ac76"/><path d="M201 201v12m-6-6h12" stroke="#adbd92" stroke-width="2" stroke-linecap="round"/></svg>`;
+    return `<svg viewBox="0 0 240 260" fill="none" role="img" aria-label="从目标出发，沿着路线逐步完成任务"><circle cx="132" cy="128" r="88" fill="var(--art-orbit)"/><circle cx="132" cy="128" r="67" stroke="var(--art-line)" stroke-dasharray="3 7"/><path d="M63 183c0-52 111 10 111-54S72 125 72 72" stroke="var(--art-line)" stroke-width="2" stroke-dasharray="5 6"/><rect x="36" y="42" width="100" height="59" rx="12" fill="var(--art-card)" transform="rotate(-7 36 42)"/><rect x="52" y="57" width="30" height="5" rx="2.5" fill="var(--art-detail)"/><rect x="52" y="71" width="60" height="4" rx="2" fill="var(--art-line)"/><rect x="52" y="82" width="46" height="4" rx="2" fill="var(--art-line)"/><rect x="113" y="112" width="95" height="63" rx="12" fill="var(--art-card)" transform="rotate(8 113 112)"/><circle cx="138" cy="138" r="11" fill="var(--art-orbit)"/><path d="m133 138 4 4 7-8" stroke="var(--art-detail)" stroke-width="2" stroke-linecap="round"/><path d="M158 135h29m-29 10h22" stroke="var(--art-line)" stroke-width="4" stroke-linecap="round"/><circle cx="66" cy="192" r="24" fill="var(--art-spot)"/><path d="m55 192 7 7 15-16" stroke="var(--art-card)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="190" cy="56" r="5" fill="var(--art-detail)"/><path d="M201 201v12m-6-6h12" stroke="var(--art-line)" stroke-width="2" stroke-linecap="round"/></svg>`;
   }
   function renderOverview() {
     const s = getStats();
@@ -126,23 +126,6 @@
     main.innerHTML=pageHeading('动手练习','今天，先做哪件小事？','选一个任务，就按步骤开始。每个任务都准备了示例资料和说明。')+`<div class="lab-three-steps" aria-label="练习过程"><span><b>1</b> 看资料</span><span>${icon('chevron')}</span><span><b>2</b> 交给 Agent</span><span>${icon('chevron')}</span><span><b>3</b> 对照检查</span></div><div class="task-grid beginner-task-grid" id="task-list"></div><p class="lab-next-note">初次使用，推荐从会议待办开始。准备好之后，再到<a class="text-link" href="#/route">学习路线</a>了解完整方法。</p>`;
     renderTaskCards();
   }
-  function taskMode(id) {
-    const r=state.tasks[id];
-    return ui.taskModes[id] || r.mode || 'example';
-  }
-  function taskStep(id) { return ui.steps[id] ?? state.tasks[id].checkpoint ?? 0; }
-  function renderTask(id) {
-    const t=taskById(id);if(!t)return renderNotFound();
-    const r=state.tasks[id],mode=taskMode(id),step=taskStep(id),demo=mode==='example';
-    const completed=getStats().completedTaskIds.includes(id);
-    const checkpoint=t.checkpoints[step];
-    let body='';
-    if(step===0)body=`<h2>先看看这次要交付什么</h2><p>${esc(t.summary)}</p><div class="callout"><strong>完成标准</strong><p>${t.criteria.map(x=>esc(x.label)).join('；')}。</p></div><h3>示例资料</h3><pre class="output-preview">${esc(t.sampleInput)}</pre><div class="task-actions"><button class="button primary" data-action="task-step" data-id="${id}" data-step="1">${demo?'跟着示例开始':'准备我的资料'} ${icon('arrow')}</button></div>`;
-    if(step===1)body=`<h2>${demo?'示例任务说明':'准备资料，交代任务'}</h2><p class="muted">${demo?'观察任务说明包含了哪些信息。':'把下面的说明复制到你常用的 Agent，并附上自己的资料。'}</p>${demo?`<div class="example-label">${icon('info')} 教学示例</div>`:`<div class="form-group"><label class="input-label" for="practice-input">你的资料或任务背景</label><textarea class="form-textarea" id="practice-input" data-task-field="input" data-id="${id}" maxlength="30000" placeholder="粘贴你自己的资料，或记录资料范围与处理要求…">${esc(r.input)}</textarea><div class="field-hint">只保存在当前浏览器。你也可以导入小于 100 KB 的 TXT、MD 或 CSV 文本。</div><label class="button small secondary upload-label">${icon('upload')} 导入文本<input type="file" data-task-upload="${id}" accept=".txt,.md,.csv,text/plain,text/markdown,text/csv" hidden></label></div>`}<div class="example-panel"><div class="section-heading"><h3>可直接复制的任务说明</h3><button class="button small secondary" data-action="copy-prompt" data-id="${id}">${icon('copy')} 复制说明</button></div><pre class="output-preview">${esc(t.prompt)}</pre></div><details class="task-faq"><summary>委派任务前，检查哪三件事？</summary><p>目标是否明确、资料是否齐全、输出是否能检查。涉及写入或对外发送时，先确定需要你确认的步骤。</p></details><div class="task-actions"><button class="button primary" data-action="task-step" data-id="${id}" data-step="2">${demo?'查看示例成果':'我已拿到结果，开始验收'} ${icon('arrow')}</button></div>`;
-    if(step===2)body=`<h2>${demo?'对照示例，学会验收':'把结果带回来，逐项验收'}</h2>${demo?`<div class="example-label">${icon('info')} 静态教学示例 · 不计入独立成果</div><pre class="output-preview example-output">${esc(t.sampleOutput)}</pre>`:`<div class="form-group"><label class="input-label" for="practice-output">粘贴 Agent 的实际输出</label><textarea class="form-textarea output-editor" id="practice-output" data-task-field="output" data-id="${id}" maxlength="50000" placeholder="把实际输出粘贴到这里。请不要只填写“已完成”。">${esc(r.output)}</textarea><p class="field-hint">编辑会自动保存。修改已完成成果后，需要重新确认验收。</p></div>`}<h3>成果验收表</h3><div class="checklist">${t.criteria.map(c=>`<label class="check-item"><input type="checkbox" data-task-check="${esc(c.id)}" data-id="${id}" ${demo?'disabled':r.checks[c.id]?'checked':''}><span>${esc(c.label)}</span></label>`).join('')}</div><p class="field-hint">${demo?'切换到独立练习后，可根据实际结果勾选验收。':'这是你的自检记录，系统不会代替你判断事实是否正确。'}</p><div class="task-actions"><button class="button primary" data-action="task-step" data-id="${id}" data-step="3">记录复盘，继续练习 ${icon('arrow')}</button></div>`;
-    if(step===3)body=`<h2>${demo?'把一次体验，变成可复用的方法':'留下这次的收获'}</h2>${demo?'<p>现在可以换一份自己的资料，试着独立完成。方法仍然是：说明目标、提供资料、检查结果、记录改进。</p>':`<div class="form-group"><label class="input-label" for="practice-notes">哪里需要人工修改？下次怎样做得更好？</label><textarea class="form-textarea" id="practice-notes" data-task-field="notes" data-id="${id}" maxlength="20000" placeholder="例如：补充了输出格式后，第二次结果更完整；仍需要核对截止时间…">${esc(r.notes)}</textarea></div>`}<div class="callout"><strong>下一次，多走一步</strong><div class="challenge-options">${t.challenges.map((c,i)=>`<button class="button small ${ui.challenges[id]===i?'primary':'secondary'}" data-action="challenge" data-id="${id}" data-index="${i}">${esc(c.title)}</button>`).join('')}</div><p id="challenge-description">${esc(t.challenges[ui.challenges[id]??0]?.description || '')}</p></div><div class="task-actions">${demo?`<button class="button primary" data-action="task-mode" data-id="${id}" data-mode="practice">用自己的资料，独立做一次 ${icon('arrow')}</button>`:`<button class="button primary" data-action="task-complete" data-id="${id}">${icon('check')} ${completed?'更新验收记录':'保存普通自检成果'}</button><button class="button secondary" data-action="save-draft" data-id="${id}">保存草稿</button>`}</div>`;
-    main.innerHTML=pageHeading(`${esc(t.category)} · ${t.minutes} 分钟`,esc(t.title),esc(t.summary),`<a class="button primary" href="#/project/start" data-project-action="choose-task" data-task="${id}">按三步开始练习</a><a class="button ghost" href="#/tasks">返回任务实验室</a>`)+`${completed?'<div class="completion-banner">'+icon('check')+'<div><h3>这份成果已完成普通自检</h3><p>你可以重新查看、改进成果，或尝试更有挑战的资料。</p></div></div>':''}<div class="task-detail-grid"><article class="task-workspace"><div class="practice-tabs" role="group" aria-label="练习方式"><button class="tab-button ${demo?'active':''}" aria-pressed="${demo}" data-action="task-mode" data-id="${id}" data-mode="example">示例跟做</button><button class="tab-button ${!demo?'active':''}" aria-pressed="${!demo}" data-action="task-mode" data-id="${id}" data-mode="practice">独立练习</button></div><div class="stepper" aria-label="任务步骤">${t.checkpoints.map((cp,i)=>`<button class="step-item ${step===i?'active':step>i?'done':''}" data-action="task-step" data-id="${id}" data-step="${i}" aria-current="${step===i?'step':'false'}"><span>${i+1}</span>${esc(cp.title)}</button>`).join('')}</div><section class="workspace-section surface-card"><div class="step-intro"><span class="badge ${demo?'neutral':'green'}">${demo?'示例体验':'我的练习'} · ${step+1}/4</span><p class="muted">${esc(checkpoint.description)}</p></div>${body}</section><p class="save-indicator" id="task-save-indicator">${demo?'示例体验不增加独立成果数':r.savedAt?'草稿已保存在本机 · '+K.formatDate(r.savedAt):'输入后会自动保存在本机'}</p></article><aside class="task-sidebar"><div class="surface-card sticky-summary"><p class="eyebrow">这一步的小提示</p><h3>${esc(checkpoint.title)}</h3><p>${esc(checkpoint.tip)}</p></div><div class="surface-card sticky-summary"><p class="eyebrow">相关知识</p>${t.lessonIds.map(lid=>`<a class="related-task" href="#/lesson/${lid}">${icon(state.lessons[lid]?.passed?'check':'book')}<span>${esc(lessonById(lid).title)}</span></a>`).join('')}</div><div class="surface-card sticky-summary"><p class="eyebrow">卡住了？</p>${t.pitfalls.map(p=>`<details class="task-faq"><summary>${esc(p.problem)}</summary><p>${esc(p.solution)}</p></details>`).join('')}</div></aside></div>`;
-  }
   function renderArtifacts() {
     const s=getStats();
     const runs=state.learning.runs.filter(r=>!state.learning.withdrawnRunIds.includes(r.id) && !['baseline','pretest'].includes(r.kind)).slice().reverse();
@@ -150,7 +133,11 @@
     const recent=runs.slice(0,6);
     main.innerHTML=pageHeading('我的成果','做过的练习，随时回来看看。',runs.length?`已保存 ${runs.length} 份练习与项目记录。保存记录后，仍可继续核查和改进。`:'资料、实际输出和自检记录会保存在这里。',`<a class="button primary" href="#/project/records">查看全部练习记录 ${icon('arrow')}</a><button class="button secondary" data-action="export">${icon('download')} 备份全部记录</button>`)+
       (recent.length?`<div class="artifact-grid beginner-artifacts">${recent.map(r=>`<article class="artifact-card surface-card"><div class="section-heading"><div class="task-icon">${icon(r.taskId)}</div><span class="badge neutral">${r.kind==='practice'?'普通练习已保存':'项目自评记录'}</span></div><h2>${esc(taskById(r.taskId).title)}</h2><p class="artifact-record-meta">${esc(r.date)} · ${r.context==='work'?'自己的工作资料':'教学或模拟资料'}</p><pre class="artifact-preview">${esc(r.output)}</pre><p class="field-hint">${r.kind==='practice'?'这是一份有引导的练习记录。':'项目判断与成果可在记录页查看并导出核查。'}</p><a class="text-link" href="#/project/records">查看练习记录 ${icon('arrow')}</a></article>`).join('')}</div>`:`<div class="empty-state surface-card">${icon('folder')}<h2>从一次小练习开始。</h2><p>示例已经准备好，跟着三步完成，最后保存结果。</p><a class="button primary" href="#/project/start" data-project-action="choose-task" data-task="meeting">开始会议待办练习 ${icon('arrow')}</a></div>`)+
-      (oldTasks.length?`<details class="legacy-history"><summary>以前的自检成果 · ${oldTasks.length} 份</summary><p>旧资料、输出和自检记录都已保留，可以继续查看或导出。</p><div class="artifact-grid">${oldTasks.map(t=>{const r=state.tasks[t.id],done=s.completedTaskIds.includes(t.id);return `<article class="artifact-card surface-card"><span class="badge neutral">${done?'普通自检完成':'历史草稿'}</span><h3>${esc(t.title)}</h3><pre class="artifact-preview">${esc(r.output||r.input||r.notes)}</pre><div class="task-actions"><a class="text-link" href="#/task/${t.id}">查看历史记录 ${icon('arrow')}</a><button class="button ghost small" data-action="download-artifact" data-id="${t.id}">${icon('download')} 导出</button></div></article>`;}).join('')}</div></details>`:'');
+      (oldTasks.length?`<details class="legacy-history"><summary>以前的自检成果 · ${oldTasks.length} 份</summary><p>旧资料、输出和自检记录都已保留。可展开查看原文，或按逐步流程继续。</p><div class="artifact-grid">${oldTasks.map(t=>legacyRecord(t,s.completedTaskIds.includes(t.id))).join('')}</div></details>`:'');
+  }
+  function legacyRecord(t,done) {
+    const r=state.tasks[t.id];
+    return `<article class="artifact-card surface-card"><span class="badge neutral">${done?'普通自检完成':'历史草稿'}</span><h3>${esc(t.title)}</h3><pre class="artifact-preview">${esc(r.output||r.input||r.notes)}</pre><details class="task-faq"><summary>查看原记录</summary>${[['资料',r.input],['实际输出',r.output],['复盘',r.notes]].map(([label,value])=>`<h4>${label}</h4><pre class="output-preview">${esc(value||'未填写')}</pre>`).join('')}<h4>当时的自检记录</h4><ul class="project-list">${t.criteria.map(c=>`<li>${r.checks[c.id]?'已确认':'未确认'}：${esc(c.label)}</li>`).join('')}</ul></details><div class="task-actions"><button type="button" class="button secondary small" data-project-action="legacy-task" data-task="${t.id}">按步骤继续 ${icon('arrow')}</button><button class="button ghost small" data-action="download-artifact" data-id="${t.id}">${icon('download')} 导出原记录</button></div></article>`;
   }
   function renderSettings() {
     const s=getStats();
@@ -158,11 +145,10 @@
   }
   function renderNotFound() {main.innerHTML=`<div class="empty-state"><h1>这个页面暂时没有找到</h1><p>可以回到学习总览，接着完成下一步。</p><a class="button primary" href="#/overview">返回总览</a></div>`;}
   function render() {
-    if(saveTimer){clearTimeout(saveTimer);saveTimer=null;persist({quiet:true});}
     if(dialog.open)dialog.close();
     const [,page='overview',id]=location.hash.split('/');
     const routes={overview:renderOverview,route:renderRoute,tasks:renderTasks,artifacts:renderArtifacts,settings:renderSettings};
-    if(page==='lesson')renderLesson(id);else if(page==='task')renderTask(id);else if(page==='project')P.render(id);else (routes[page]||renderNotFound)();
+    if(page==='lesson')renderLesson(id);else if(page==='task'){if(taskById(id))P.openLegacy(id);else renderNotFound();}else if(page==='project')P.render(id);else (routes[page]||renderNotFound)();
     updateShell();window.scrollTo({top:0,behavior:'instant'});
     document.title=`${({overview:'学习总览',route:'学习路线',tasks:'任务实验室',artifacts:'我的成果',settings:'学习设置',project:['start','path'].includes(id)?'动手练习':'学习计划与记录',lesson:lessonById(id)?.title,task:taskById(id)?.title})[page] || '启程'} · 启程`;
   }
@@ -207,28 +193,6 @@
       openDialog('恢复这份学习记录？',`<p>备份包含以下内容：</p><div class="settings-list"><div class="settings-row"><span>学习目标</span><strong>${esc(s.goal.title)}</strong></div><div class="settings-row"><span>理解检查通过</span><strong>${s.allCompletedLessons} 节</strong></div><div class="settings-row"><span>项目练习 / 普通草稿</span><strong>${pendingBackup.learning.runs.length} / ${s.drafts}</strong></div></div><p class="field-hint">恢复会替换当前浏览器的学习记录。可以先关闭此窗口，导出当前备份。</p>`,`<button class="button secondary" data-action="close-dialog">取消</button><button class="button primary" data-action="restore-backup">确认恢复</button>`);
     }catch(error){pendingBackup=null;const reason=error instanceof SyntaxError?'备份文件内容不完整或格式有误':error.message||'备份文件格式有误';toast(`无法恢复：${reason}。当前记录已保留。`);}
   }
-  function saveTaskField(id,field,value) {
-    const r=state.tasks[id];r.mode='practice';r[field]=value;
-    if(field==='input'||field==='output') {
-      r.completedAt=null;
-      Object.keys(r.checks).forEach(key=>r.checks[key]=false);
-    }
-    r.savedAt=new Date().toISOString();
-    clearTimeout(saveTimer);saveTimer=setTimeout(()=>{
-      saveTimer=null;persist({quiet:true});
-      const indicator=$('#task-save-indicator');if(indicator)indicator.textContent=storageAvailable?'草稿已自动保存在本机':'未能自动保存，请导出备份';
-    },300);
-  }
-  function completeTask(id) {
-    const t=taskById(id),r=state.tasks[id];
-    if(taskMode(id)!=='practice')return toast('请先使用自己的资料完成独立练习。');
-    if(r.input.trim().length<10){ui.steps[id]=1;renderTask(id);return toast('请先记录自己的资料或任务背景，至少 10 个字符。');}
-    if(r.output.trim().length<20){ui.steps[id]=2;renderTask(id);return toast('请先粘贴实际成果，至少 20 个字符。');}
-    if(!t.criteria.every(c=>r.checks[c.id])){ui.steps[id]=2;renderTask(id);return toast('请先核对结果，并完成全部验收项。');}
-    const first=!r.completedAt;r.mode='practice';r.completedAt=new Date().toISOString();r.savedAt=r.completedAt;
-    if(first)activity('task',id);
-    persist();renderTask(id);toast('普通自检成果已保存。进入学习项目，可积累多次练习与能力证据。');
-  }
   document.addEventListener('click',async event=>{
     const target=event.target.closest('[data-action]');
     if(!target)return;
@@ -237,9 +201,9 @@
     if(action==='close-dialog')dialog.close();
     if(action==='export')exportBackup();
     if(action==='import'){$('#backup-file').value='';$('#backup-file').click();}
-    if(action==='restore-backup'&&pendingBackup){state=pendingBackup;pendingBackup=null;Object.assign(ui,{choices:{},feedback:{},taskModes:{},steps:{}});persist();dialog.close();render();toast('学习记录已恢复。');}
+    if(action==='restore-backup'&&pendingBackup){state=pendingBackup;pendingBackup=null;Object.assign(ui,{choices:{},feedback:{}});persist();dialog.close();render();toast('学习记录已恢复。');}
     if(action==='reset-dialog')openDialog('清空本机学习记录？','<p>这会移除当前浏览器中的目标、课程进度、草稿和成果。建议先导出一份备份。</p>','<button class="button secondary" data-action="close-dialog">取消</button><button class="button danger" data-action="reset-confirm">确认清空并重新开始</button>');
-    if(action==='reset-confirm'){state=K.createState(C);Object.assign(ui,{choices:{},feedback:{},taskModes:{},steps:{},challenges:{}});persist();dialog.close();location.hash='#/overview';render();toast('已开启新的学习记录。');}
+    if(action==='reset-confirm'){state=K.createState(C);Object.assign(ui,{choices:{},feedback:{}});persist();dialog.close();location.hash='#/overview';render();toast('已开启新的学习记录。');}
     if(action==='quiz-choice'){ui.choices[id]=Number(target.dataset.index);delete ui.feedback[id];renderLesson(id);}
     if(action==='quiz-submit'){
       const l=lessonById(id),answer=ui.choices[id]??state.lessons[id]?.answerIndex;
@@ -251,47 +215,16 @@
     }
     if(action==='filter'){ui.filter=target.dataset.value;renderTasks();}
     if(action==='copy-prompt')await copyText(taskById(id).prompt);
-    if(action==='task-mode'){
-      const mode=target.dataset.mode;ui.taskModes[id]=mode;
-      if(mode==='example'){ui.steps[id]=0;state.tasks[id].exampleSeen=true;}else{ui.steps[id]=state.tasks[id].mode==='practice'?state.tasks[id].checkpoint:1;state.tasks[id].mode='practice';state.tasks[id].checkpoint=ui.steps[id];}
-      persist({quiet:true});renderTask(id);
-    }
-    if(action==='task-step'){
-      const step=Number(target.dataset.step);ui.steps[id]=step;
-      if(taskMode(id)==='practice')state.tasks[id].checkpoint=step;else state.tasks[id].exampleSeen=true;
-      persist({quiet:true});renderTask(id);
-    }
-    if(action==='challenge'){ui.challenges[id]=Number(target.dataset.index);renderTask(id);}
-    if(action==='save-draft'){state.tasks[id].savedAt=new Date().toISOString();persist();toast('练习草稿已保存，可以随时回来继续。');}
-    if(action==='task-complete')completeTask(id);
     if(action==='download-artifact')downloadArtifact(id);
   });
   document.addEventListener('input',event=>{
     const el=event.target;
     if(el.id==='task-search'){ui.search=el.value.trim();renderTaskCards();}
-    if(el.dataset.taskField){
-      saveTaskField(el.dataset.id,el.dataset.taskField,el.value);
-      if(el.dataset.taskField!=='notes'){
-        document.querySelectorAll('[data-task-check]').forEach(checkbox=>checkbox.checked=false);
-        $('.completion-banner')?.remove();
-      }
-    }
   });
   document.addEventListener('change',async event=>{
     const el=event.target;
     if(el.id==='goal-id')$('#goal-description').textContent=C.goals.find(g=>g.id===el.value).description;
     if(el.id==='backup-file')await readBackup(el.files[0]);
-    if(el.dataset.taskCheck){
-      const r=state.tasks[el.dataset.id];r.mode='practice';r.checks[el.dataset.taskCheck]=el.checked;
-      if(!el.checked){r.completedAt=null;$('.completion-banner')?.remove();}
-      r.savedAt=new Date().toISOString();persist({quiet:true});
-    }
-    if(el.dataset.taskUpload){
-      const file=el.files[0];if(!file)return;
-      if(file.size>100*1024)return toast('请导入小于 100 KB 的文本文件。');
-      if(!/\.(txt|md|csv)$/i.test(file.name))return toast('目前支持 TXT、MD 和 CSV 文本。');
-      try{const text=await file.text();if(text.length>30000)return toast('文本超过 30000 字符，请先摘取任务需要的部分。');saveTaskField(el.dataset.taskUpload,'input',text);renderTask(el.dataset.taskUpload);toast('资料已在本机读取，没有上传。');}catch(error){toast('未能读取文件，请改用粘贴文本。');}
-    }
   });
   document.addEventListener('submit',event=>{
     if(event.target.id!=='goal-form')return;
@@ -301,7 +234,6 @@
   });
   $('.skip-link').addEventListener('click',event=>{event.preventDefault();main.focus();});
   window.addEventListener('hashchange',render);
-  window.addEventListener('pagehide',()=>{if(saveTimer){clearTimeout(saveTimer);saveTimer=null;persist({quiet:true});}});
   window.addEventListener('storage',event=>{
     if(event.key!==STORAGE_KEY||!event.newValue)return;
     try{
@@ -310,7 +242,7 @@
       const mergedRuns=new Map([...incoming.learning.runs,...localLearning.runs].map(run=>[run.id,run]));
       if(mergedRuns.size>500)throw new Error('多标签页记录合并超出容量，请导出备份。');
       const withdrawn=[...new Set([...incoming.learning.withdrawnRunIds,...localLearning.withdrawnRunIds])];
-      if(state.updatedAt>incoming.updatedAt||document.activeElement?.matches('[data-project-field],[data-project-select],[data-project-time]'))incoming.learning=localLearning;
+      if(state.updatedAt>incoming.updatedAt||document.activeElement?.matches('[data-beginner-field],[data-project-field],[data-project-select],[data-project-time]'))incoming.learning=localLearning;
       incoming.learning.withdrawnRunIds=withdrawn;
       incoming.learning.runs=[...mergedRuns.values()].sort((a,b)=>a.createdAt.localeCompare(b.createdAt));
       incoming.learning=window.AgentQualityCore.normalizeLearning(incoming.learning,C,{strict:true});
@@ -320,8 +252,8 @@
       incoming.activities=[...events.values()].sort((a,b)=>a.at.localeCompare(b.at)).slice(-3000);
       if(state.updatedAt>incoming.updatedAt)incoming.profile=state.profile;
       state=incoming;P.checkpoint();Object.assign(ui,{choices:{},feedback:{}});
-      if(document.activeElement?.matches('[data-task-field],[data-project-field],[data-project-time]')){updateShell();toast('另一标签页已更新，当前正在编辑的草稿已保留。');}
-      else{ui.taskModes={};ui.steps={};render();toast('已同步另一个标签页中的学习记录。');}
+      if(document.activeElement?.matches('[data-beginner-field],[data-project-field],[data-project-time]')){updateShell();toast('另一标签页已更新，当前正在编辑的草稿已保留。');}
+      else{render();toast('已同步另一个标签页中的学习记录。');}
     }catch(error){toast('另一个标签页的记录未能读取，当前内容已保留。');}
   });
   if(!location.hash||location.hash==='#')history.replaceState(null,'','#/overview');
