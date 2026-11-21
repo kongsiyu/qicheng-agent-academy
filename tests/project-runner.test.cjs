@@ -5,7 +5,7 @@ const assert=require('node:assert/strict');
 const Q=require('../quality-core.js');
 const K=require('../core.js');
 const ctx={window:{}};
-for(const f of ['content.js','curriculum.js'])vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..',f),'utf8'),ctx);
+for(const f of ['content.js','curriculum.js','scenario-courses.js'])vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..',f),'utf8'),ctx);
 const C=JSON.parse(JSON.stringify(ctx.window.AgentCourseContent));
 const state=K.createState(C), listeners={};
 const main={innerHTML:'',querySelector:()=>null,querySelectorAll:()=>[]};

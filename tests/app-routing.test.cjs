@@ -39,7 +39,7 @@ function boot(hash) {
   };
   sandbox.window=sandbox;
   vm.createContext(sandbox);
-  for(const name of ['content.js','curriculum.js','quality-core.js','core.js']) vm.runInContext(source(name),sandbox,{filename:name});
+  for(const name of ['content.js','curriculum.js','scenario-courses.js','quality-core.js','core.js']) vm.runInContext(source(name),sandbox,{filename:name});
   vm.runInContext(`
     var initial = AgentLearningCore.createState(AgentCourseContent);
     initial.tasks.meeting.mode='practice';
@@ -105,5 +105,20 @@ function boot(hash) {
   app.storage(remote);
   assert.equal(app.state().learning.draft.input,'当前另一份正式练习草稿，不能被旧任务入口直接覆盖。','cross-tab updates preserve a focused step editor');
   assert.equal(/function renderTask\(|data-task-field|data-task-upload|data-task-check/.test(source('app.js')),false,'the old form and edit handlers are removed');
+  for(const id of ['pdf','email','feedback','presentation','cleanup','files']) {
+    app.render('#/lesson/l-scene-'+id);
+    const lesson=app.nodes.get('#main').innerHTML;
+    assert.match(lesson,/场景加练 · 按需选学/);
+    assert.ok(lesson.includes('data-task="'+id+'"'),'each new course leads directly to its practice');
+    assert.equal(/第 null 周|第 7 周|undefined/.test(lesson),false);
+  }
+  app.render('#/route');
+  assert.match(app.nodes.get('#main').innerHTML,/场景加练/);
+  assert.equal(/第 null 周/.test(app.nodes.get('#main').innerHTML),false);
+  app.render('#/tasks');
+  assert.match(app.nodes.get('#task-list').innerHTML,/场景加练/);
+  assert.equal((app.nodes.get('#task-list').innerHTML.match(/data-project-action="choose-task"/g)||[]).length,12);
+  app.render('#/settings');
+  assert.match(app.nodes.get('#main').innerHTML,/23 节短课 · 12 个任务包/);
   console.log('PASS: old bookmarks and history use protected step routing, retired editors cannot write, original records and downloads remain intact.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

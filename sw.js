@@ -1,6 +1,6 @@
 /* Static assets only. Learning data stays in the browser, outside this cache. */
-const CACHE = 'qicheng-static-v5';
-const ASSETS = ['./','./index.html','./styles.css','./details.css','./project.css','./content.js','./curriculum.js','./quality-core.js','./core.js','./beginner.js','./project-runner.js','./project.js','./app.js','./favicon.svg','./manifest.webmanifest'];
+const CACHE = 'qicheng-static-v6';
+const ASSETS = ['./','./index.html','./styles.css','./details.css','./project.css','./content.js','./curriculum.js','./scenario-courses.js','./assets/practice/reading-guide.pdf','./assets/practice/messy-orders.xlsx','./assets/practice/rename-sandbox.zip','./quality-core.js','./core.js','./beginner.js','./project-runner.js','./project.js','./app.js','./favicon.svg','./manifest.webmanifest'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
   self.skipWaiting();

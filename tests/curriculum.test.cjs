@@ -5,15 +5,15 @@ const assert = require('node:assert/strict');
 const core = require('../core.js');
 const Q = require('../quality-core.js');
 const context = { window:{} };
-for (const file of ['content.js','curriculum.js']) vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),context);
+for (const file of ['content.js','curriculum.js','scenario-courses.js']) vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),context);
 const C = JSON.parse(JSON.stringify(context.window.AgentCourseContent));
 const lessons = new Map(C.lessons.map(l=>[l.id,l]));
-assert.equal(lessons.size,17);
+assert.equal(lessons.size,23);
 assert.equal(C.competencies.length,8);
 const required = C.modules.filter(m=>!m.optional).flatMap(m=>m.lessonIds);
 assert.equal(required.length,14);
 const ordered = C.modules.flatMap(m=>m.lessonIds);
-assert.equal(new Set(ordered).size,17);
+assert.equal(new Set(ordered).size,23);
 assert.deepEqual(C.lessons.map(l=>l.id),ordered,'rendered lesson navigation follows module order');
 for (const m of C.modules) for (const id of m.lessonIds) assert.equal(lessons.get(id).moduleId,m.id);
 assert.ok(C.modules[0].lessonIds.includes('l-concepts'));
@@ -45,4 +45,27 @@ for (const task of C.tasks) {
 }
 assert.ok(C.electives.assistant.testCases.length>=3);
 assert.ok(C.electives.automation.testCases.length>=3);
+const oldContext = {window:{}};
+for (const file of ['content.js','curriculum.js']) vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),oldContext);
+const oldContent = JSON.parse(JSON.stringify(oldContext.window.AgentCourseContent));
+const oldState = core.createState(oldContent);
+oldState.tasks.meeting.output = '旧版学习成果应该在增加课程后继续保留，不因内容扩充而丢失。';
+const expandedState = core.normalizeState(oldState,C,{strict:true});
+assert.equal(expandedState.tasks.meeting.output,oldState.tasks.meeting.output,'adding topics preserves old backups without a schema reset');
+for (const goal of C.goals) {
+  expandedState.profile.goalId=goal.id;
+  const before = core.getStats({...oldState,profile:{...oldState.profile,goalId:goal.id}},oldContent);
+  const after = core.getStats(expandedState,C);
+  assert.deepEqual(after.requiredLessons.map(l=>l.id),before.requiredLessons.map(l=>l.id),'optional scenarios do not expand an existing learning target');
+}
+const scenarioModule=C.modules.find(m=>m.scenario);
+assert.equal(scenarioModule.week,null,'scenario practice is not a seventh required week');
+assert.equal(scenarioModule.lessonIds.length,6);
+for (const task of C.tasks.filter(t=>t.scenario)) {
+  assert.ok(expandedState.tasks[task.id],'old state gains blank entries for new tasks');
+  assert.equal(task.criteria.length,4);
+  assert.ok(task.lessonIds.every(id=>lessons.has(id)));
+  if(task.materialFile)assert.ok(fs.statSync(path.join(__dirname,'..',task.materialFile)).size>100,'download points to a real packaged practice file');
+  assert.equal(new Set(Object.values(C.practice[task.id].cases).map(c=>c.input)).size,8,'assessment variants use genuinely different inputs');
+}
 console.log('PASS: published curriculum ordering, workload, fresh assessments, diagnosis IDs and complete project contracts.');
