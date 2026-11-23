@@ -1,7 +1,7 @@
 /* All project drafts share this step-by-step editor, including restored legacy drafts. */
 window.createProjectRunner = function (ctx) {
   'use strict';
-  const {C,K,esc,icon,getLearning,save,redraw,toast,copyText} = ctx;
+  const {C,K,esc,icon,answerPreview,answerEditorPreview,getLearning,save,redraw,toast,copyText} = ctx;
   let active=null, bound=null, identity='', custom=false, errors=[];
   const d=()=>getLearning().draft;
   const task=()=>C.tasks.find(t=>t.id===d().taskId);
@@ -28,7 +28,7 @@ window.createProjectRunner = function (ctx) {
     return C.practice[d().taskId]?.cases[d().kind];
   }
   const button=(action,label,secondary=false,extra='')=>`<button class="button ${secondary?'secondary':'primary'}" type="button" data-run-action="${action}" ${extra}>${label}</button>`;
-  const text=(key,label,hint)=>`<div class="form-group"><label class="input-label" for="project-${key}">${esc(label)}</label><textarea id="project-${key}" class="form-textarea tall" data-project-field="${key}" maxlength="${key==='input'?100000:key==='output'?200000:key==='instruction'?30000:20000}" placeholder="${esc(hint)}">${esc(d()[key])}</textarea><p class="field-hint">${esc(hint)}</p></div>`;
+  const text=(key,label,hint)=>`<div class="form-group"><label class="input-label" for="project-${key}">${esc(label)}</label><textarea id="project-${key}" class="form-textarea tall" data-project-field="${key}" maxlength="${key==='input'?100000:key==='output'?200000:key==='instruction'?30000:20000}" placeholder="${esc(hint)}">${key==='output'?'\n':''}${esc(d()[key])}</textarea>${key==='output'?answerEditorPreview:''}<p class="field-hint">${esc(hint)}</p></div>`;
   function materials(){
     const c=caseData(), input=d().input||c?.input||'';
     return `<h2>先确认这次要用的资料</h2><p>${esc(c?.brief||'只带入完成这次任务需要的资料，留意来源、版本和缺失信息。')}</p>${input?`<pre class="output-preview guided-material">${esc(input)}</pre>`:''}${!input||custom?text('input','这次的资料','粘贴资料，保留必要的来源、日期、版本或表格口径。'):`<details class="guided-optional"><summary>修改或更换资料</summary>${text('input','这次的资料','修改后会清除原验收勾选，需要重新核查。')}</details>`}${c?.steps?`<details class="guided-optional"><summary>查看实操步骤</summary><ol class="project-list">${c.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol></details>`:''}`;
@@ -40,7 +40,7 @@ window.createProjectRunner = function (ctx) {
     return `<h2>${d().kind==='baseline'?'把原流程的结果留在这里':'去执行一次，把结果带回来'}</h2><p>${d().kind==='baseline'?'先不用 Agent，按原来的方法完成。':'复制下面的完整任务，到获准使用的 Agent 中执行，再把实际回答带回来。'}</p>${d().kind==='baseline'?'':button('copy','复制任务和资料 '+icon('copy'))}<details class="guided-optional"><summary>查看任务说明和资料</summary><pre class="output-preview">${esc(d().instruction)}\n\n本次资料：\n${esc(d().input)}</pre></details>${text('output',d().kind==='baseline'?'原有流程的结果':'实际得到的结果','保留本次真实输出，不用重新抄写资料或任务说明。')}`;
   }
   function verify(){
-    return `<h2>挑一条关键结论，回到资料核查</h2><p>写一份核查记录即可。没有发现错误时，不需要另外编一段“纠错说明”。</p><div class="guided-compare"><details class="guided-optional"><summary>查看原始资料</summary><pre class="output-preview">${esc(d().input)}</pre></details><details class="guided-optional"><summary>查看实际结果</summary><pre class="output-preview">${esc(d().output)}</pre></details></div>${text('sourceCheck','这条结论的核查记录','例如：结果说负责人是李明；记录第2段确有他的承诺，日期也一致。写清结论、依据和核查结果。')}<div class="checklist">${[['facts','事实、数字和日期核对过了'],['sources','结论有依据，没有依据的已标明未知'],['complete','关键内容没有遗漏，符合这次要求'],['boundary','问题已处理，需要人工确认的动作没有越过']].map(([key,label])=>`<label class="check-item"><input type="checkbox" data-project-check="${key}" ${d().checks[key]?'checked':''}><span>${label}</span></label>`).join('')}</div><div class="task-actions">${button('issue','发现错误？记录一次修改',true)}${!needsDecision()?button('optional-decision','有缺口或权限动作？记录处理决定',true):''}</div>${d().correction?`<p class="field-hint">已保留之前的修改记录，可按上方按钮继续编辑。</p>`:''}`;
+    return `<h2>挑一条关键结论，回到资料核查</h2><p>写一份核查记录即可。没有发现错误时，不需要另外编一段“纠错说明”。</p><div class="guided-compare"><details class="guided-optional"><summary>查看原始资料</summary><pre class="output-preview">${esc(d().input)}</pre></details><details class="guided-optional"><summary>查看实际结果</summary>${answerPreview(d().output)}</details></div>${text('sourceCheck','这条结论的核查记录','例如：结果说负责人是李明；记录第2段确有他的承诺，日期也一致。写清结论、依据和核查结果。')}<div class="checklist">${[['facts','事实、数字和日期核对过了'],['sources','结论有依据，没有依据的已标明未知'],['complete','关键内容没有遗漏，符合这次要求'],['boundary','问题已处理，需要人工确认的动作没有越过']].map(([key,label])=>`<label class="check-item"><input type="checkbox" data-project-check="${key}" ${d().checks[key]?'checked':''}><span>${label}</span></label>`).join('')}</div><div class="task-actions">${button('issue','发现错误？记录一次修改',true)}${!needsDecision()?button('optional-decision','有缺口或权限动作？记录处理决定',true):''}</div>${d().correction?`<p class="field-hint">已保留之前的修改记录，可按上方按钮继续编辑。</p>`:''}`;
   }
   function reviewField(key,title,hint){return `<h2>${title}</h2>${text(key,title,hint)}`;}
   function finish(){

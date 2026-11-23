@@ -17,6 +17,7 @@ const sandbox={
 };
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../beginner.js'),'utf8'),sandbox);
 const ctx={C,K,main,getState:()=>state,esc:String,icon:()=>'',
+  answerPreview:String,answerEditorPreview:'<details class="answer-editor-preview"></details>',
   save:()=>{Q.normalizeLearning(state.learning,C,{strict:true});return true;},
   toast:text=>warning=text,copyText:async text=>copied=text,
   openDialog:title=>dialog=title,closeDialog:()=>dialog=''
@@ -33,6 +34,7 @@ const change=(key,value)=>events.change({target:{dataset:{beginnerCheck:key},che
   await click('next');
   assert.equal(state.learning.draft.kind,'practice');
   assert.match(main.innerHTML,/复制过去，把结果带回来/);
+  assert.match(main.innerHTML,/answer-editor-preview/);
   assert.equal((main.innerHTML.match(/<textarea/g)||[]).length,1,'execution has one answer field');
   await click('copy');
   assert.ok(copied.includes(state.learning.draft.input),'copy includes the selected material');

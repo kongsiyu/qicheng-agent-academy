@@ -2,10 +2,12 @@
 (function (root, factory) {
   'use strict';
   var quality = typeof module === 'object' && module.exports ? require('./quality-core.js') : root.AgentQualityCore;
-  var api = factory(root, quality);
+  var workflow = typeof module === 'object' && module.exports ? require('./workflow-core.js') : root.AcademyWorkflowCore;
+  var workflowContent = typeof module === 'object' && module.exports ? require('./workflow-content.js') : root.AcademyWorkflowContent;
+  var api = factory(root, quality, workflow, workflowContent);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.AgentLearningCore = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (root, Q) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (root, Q, workflow, workflowContent) {
   'use strict';
   var VERSION = 2;
   var own = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
@@ -70,6 +72,24 @@
     }
     visit(value, 0);
   }
+  function restoreWorkflows(raw) {
+    if (own(raw, 'workflow') && own(raw, 'workflows')) throw new Error('备份包含两种工作流记录。');
+    var entries = [];
+    if (own(raw, 'workflow')) {
+      entries = [[raw.workflow?.workflowId, { record: raw.workflow, updatedAt: raw.updatedAt }]];
+    } else if (own(raw, 'workflows')) {
+      if (!isObject(raw.workflows)) throw new Error('工作流记录无效。');
+      entries = Object.entries(raw.workflows);
+    }
+    return Object.fromEntries(entries.map(function ([id, entry]) {
+      var definition = workflowContent.find(function (item) { return item.id === id; });
+      if (!definition || !isObject(entry) || Object.keys(entry).length !== 2 ||
+          !own(entry, 'record') || !own(entry, 'updatedAt') || !validISO(entry.updatedAt)) {
+        throw new Error('工作流记录无效。');
+      }
+      return [id, { record: workflow.restore(entry.record, definition), updatedAt: entry.updatedAt }];
+    }));
+  }
   function normalizeState(raw, content, options) {
     var c = contentOf(content), clean = createState(c), strict = !!(options && options.strict);
     function fail(message) { if (strict) throw new Error(message); return false; }
@@ -93,7 +113,8 @@
       if (!isObject(raw) || (raw.schemaVersion !== 1 && raw.schemaVersion !== VERSION)) { fail('不支持此备份版本，请使用版本 1 或 2 的备份。'); return clean; }
       var topFields = ['schemaVersion', 'createdAt', 'updatedAt', 'profile', 'lessons', 'tasks', 'activities'];
       if (raw.schemaVersion === VERSION) topFields.push('learning');
-      if (!keys(raw, topFields, '备份', topFields)) return clean;
+      if (!keys(raw, raw.schemaVersion === VERSION ? topFields.concat('workflow', 'workflows') : topFields, '备份', topFields)) return clean;
+      if (raw.schemaVersion === VERSION && (own(raw, 'workflow') || own(raw, 'workflows'))) clean.workflows = restoreWorkflows(raw);
       clean.createdAt = timestamp(raw.createdAt, clean.createdAt, '创建');
       clean.updatedAt = timestamp(raw.updatedAt, clean.updatedAt, '更新');
       var p = raw.profile, profileFields = ['goalId', 'role', 'weeklyMinutes', 'startedAt'];

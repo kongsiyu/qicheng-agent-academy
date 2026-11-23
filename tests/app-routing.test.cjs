@@ -9,7 +9,7 @@ function boot(hash) {
   const element = key => {
     if (!nodes.has(key)) nodes.set(key,{
       innerHTML:'',textContent:'',hidden:false,open:false,value:'',dataset:{},
-      addEventListener(){},focus(){},select(){},click(){},remove(){},scrollIntoView(){},
+      addEventListener(){},setAttribute(){},focus(){},select(){},click(){},remove(){},scrollIntoView(){},
       showModal(){this.open=true;},close(){this.open=false;},matches(){return false;},
       querySelector:selector=>element(selector),querySelectorAll:()=>[]
     });
@@ -20,7 +20,7 @@ function boot(hash) {
     Intl,Date,Blob,console,setTimeout:()=>1,clearTimeout(){},navigator:{},
     location:{hash,protocol:'http:'},
     history:{replaceState(_a,_b,value){sandbox.location.hash=value;}},
-    URL:{createObjectURL(blob){files.push(blob);return 'blob:test';},revokeObjectURL(){}},
+    URL:class extends URL {static createObjectURL(blob){files.push(blob);return 'blob:test';} static revokeObjectURL(){}},
     document:{
       title:'',activeElement:null,querySelector:element,querySelectorAll:()=>[],
       createElement:()=>element('download'),
@@ -39,12 +39,12 @@ function boot(hash) {
   };
   sandbox.window=sandbox;
   vm.createContext(sandbox);
-  for(const name of ['content.js','curriculum.js','scenario-courses.js','quality-core.js','core.js']) vm.runInContext(source(name),sandbox,{filename:name});
-  vm.runInContext(`
+  for(const name of ['content.js','curriculum.js','scenario-courses.js','quality-core.js','workflow-content.js','workflow-core.js','core.js','assets/vendor/marked.umd.js','markdown.js','workflow.js','tutor-content.js','tutor-courses-office.js','tutor-courses-analysis.js','tutor-courses-skills.js','tutor-catalog.js','tutor-provider.js','tutor.js']) vm.runInContext(source(name),sandbox,{filename:name});
+  vm.runInContext(String.raw`
     var initial = AgentLearningCore.createState(AgentCourseContent);
     initial.tasks.meeting.mode='practice';
     initial.tasks.meeting.input='原始会议资料，日期和责任人尚有待确认的内容。';
-    initial.tasks.meeting.output='旧成果完整原文，不能因切换入口丢失。<script>不执行</script>';
+    initial.tasks.meeting.output='## 旧成果完整原文\n\n不能因切换入口丢失。<script>不执行</script>';
     initial.tasks.meeting.notes='原来的复盘与修改依据也应保留。';
     initial.tasks.meeting.checks['meeting-c1']=true;
     initial.learning.draft.input='当前另一份正式练习草稿，不能被旧任务入口直接覆盖。';
@@ -77,6 +77,7 @@ function boot(hash) {
   const page=app.nodes.get('#main').innerHTML;
   assert.match(page,/查看原记录/);
   assert.match(page,/原来的复盘与修改依据也应保留/);
+  assert.match(page,/<h2>旧成果完整原文<\/h2>/,'historical output gets a formatted preview');
   assert.match(page,/&lt;script&gt;不执行&lt;\/script&gt;/,'original text is displayed without executing markup');
   assert.match(page,/data-project-action="legacy-task" data-task="meeting"/,'continue delegates to the protected legacy import');
   assert.match(page,/data-action="download-artifact"/,'original record remains downloadable');
@@ -116,8 +117,62 @@ function boot(hash) {
   assert.match(app.nodes.get('#main').innerHTML,/场景加练/);
   assert.equal(/第 null 周/.test(app.nodes.get('#main').innerHTML),false);
   app.render('#/tasks');
+  assert.match(app.nodes.get('#main').innerHTML,/href="#\/workflow\/feedback-workflow"/);
+  assert.match(app.nodes.get('#main').innerHTML,/href="#\/workflow\/meeting-handoff"/);
   assert.match(app.nodes.get('#task-list').innerHTML,/场景加练/);
   assert.equal((app.nodes.get('#task-list').innerHTML.match(/data-project-action="choose-task"/g)||[]).length,12);
+  app.render('#/workflow/feedback-workflow');
+  assert.match(app.nodes.get('#main').innerHTML,/填入示例产物/);
+  assert.match(app.nodes.get('#nav-links').innerHTML,/class="nav-item active" href="#\/tasks"/);
+  const [definition,meeting]=app.sandbox.AcademyWorkflowContent;
+  const workflow=app.sandbox.AcademyWorkflowCore;
+  const legacyBrief='## 之前保存的简报\n\n保留原始内容。';
+  const prepared=definition.steps.slice(0,-1).reduce((record,step,index)=>
+    workflow.confirm(workflow.updateOutput(record,index,step.example),index),workflow.blank(definition));
+  const completed=workflow.confirm(workflow.updateOutput(prepared,2,legacyBrief),2);
+  app.storage({...app.state(),workflows:{[definition.id]:{record:completed,updatedAt:app.state().updatedAt}}});
+  assert.deepEqual(app.context().K.normalizeState(app.state(),app.context().C,{strict:true}).workflows[definition.id].record,completed);
+  app.render('#/workflow/feedback-workflow');
+  assert.match(app.nodes.get('#main').innerHTML,/工作流已完成/);
+  app.render('#/artifacts');
+  assert.match(app.nodes.get('#main').innerHTML,/查看工作流成果/);
+  assert.doesNotMatch(app.nodes.get('#main').innerHTML,/href="#\/workflow\/meeting-handoff"/);
+  app.render('#/workflow/meeting-handoff');
+  assert.match(app.nodes.get('#main').innerHTML,/从记录提取待办/);
+  assert.equal((app.nodes.get('#main').innerHTML.match(/data-workflow-step=/g)||[]).length,meeting.steps.length);
+  const incoming=structuredClone(app.state());
+  delete incoming.workflows[definition.id];
+  const meetingDraft=workflow.updateOutput(workflow.blank(meeting),0,meeting.steps[0].example);
+  incoming.workflows[meeting.id]={record:meetingDraft,updatedAt:incoming.updatedAt};
+  app.storage(incoming);
+  assert.equal(app.state().workflows[meeting.id].record.steps[0].output,meeting.steps[0].example);
+  assert.equal(app.state().workflows[definition.id].record.steps[2].output,legacyBrief);
+  app.render('#/workflow/unknown');
+  assert.match(app.nodes.get('#main').innerHTML,/没有找到/);
+  const savedBeforeTutor=JSON.stringify(app.state());
+  app.render('#/overview');
+  assert.match(app.nodes.get('#main').innerHTML,/href="#\/route">查看 AI 教练课/);
+  app.render('#/route');
+  const catalog=app.nodes.get('#main').innerHTML;
+  assert.match(catalog,/AI 教练课[\s\S]*开始上课[\s\S]*自主学习/);
+  assert.match(catalog,/href="#\/tutor\/meeting"/);
+  assert.doesNotMatch(catalog,/id="tutor-input"/);
+  assert.equal((catalog.match(/class="tutor-course-card /g)||[]).length,11);
+  for(const course of app.sandbox.AcademyTutorCatalog) {
+    assert.ok(catalog.includes('href="#/tutor/'+course.slug+'"'));
+    app.render('#/tutor/'+course.slug);
+    const classroom=app.nodes.get('#main').innerHTML;
+    assert.ok(classroom.includes(course.title));
+    assert.match(classroom,/id="tutor-input"/);
+  }
+  app.render('#/tutor/unknown');
+  assert.match(app.nodes.get('#main').innerHTML,/没有找到/);
+  app.render('#/tutor/meeting');
+  assert.match(app.nodes.get('#main').innerHTML,/id="tutor-input"/);
+  assert.match(app.nodes.get('#main').innerHTML,/课程讲解/);
+  assert.match(app.nodes.get('#main').innerHTML,/课程大纲/);
+  assert.match(app.nodes.get('#main').innerHTML,/href="#\/route">返回课程/);
+  assert.equal(JSON.stringify(app.state()),savedBeforeTutor);
   app.render('#/settings');
   assert.match(app.nodes.get('#main').innerHTML,/23 节短课 · 12 个任务包/);
   console.log('PASS: old bookmarks and history use protected step routing, retired editors cannot write, original records and downloads remain intact.');

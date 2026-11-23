@@ -12,7 +12,7 @@ const main={innerHTML:'',querySelector:()=>null,querySelectorAll:()=>[]};
 const sandbox={window:{AgentQualityCore:Q,scrollTo:()=>{}},document:{querySelector:()=>null,addEventListener:(type,fn)=>(listeners[type]??=[]).push(fn)},location:{hash:'#/project/train'}};
 for(const f of ['beginner.js','project-runner.js','project.js'])vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..',f),'utf8'),sandbox);
 let dialog='', warnings=[], report='';
-const common={C,K,Q,esc:String,icon:()=>'',main,getState:()=>state,save:()=>true,toast:s=>warnings.push(s),copyText:async()=>{},openDialog:title=>dialog=title,closeDialog:()=>dialog='',download:(name,text)=>report=text};
+const common={C,K,Q,esc:String,icon:()=>'',answerPreview:String,answerEditorPreview:'<details class="answer-editor-preview"></details>',main,getState:()=>state,save:()=>true,toast:s=>warnings.push(s),copyText:async()=>{},openDialog:title=>dialog=title,closeDialog:()=>dialog='',download:(name,text)=>report=text};
 const input='给五人项目组选工具，每人预算60元/月。资料A：叶舟团队版每人49元/月，含共享空间；资料B：木桥个人版39元/月，支持导出，团队价格未列。';
 const instruction='用途与对象：____。比较范围：____。资料及日期：____。事实/判断/未知如何区分：____。建议条件与验收：____。';
 state.learning.draft=Q.blankDraft('research');
@@ -35,6 +35,7 @@ const click=async(attr,name,extra={})=>{const el={dataset:{[attr]:name,...extra}
   assert.match(main.innerHTML,/去执行一次，把结果带回来/);
   assert.equal((main.innerHTML.match(/<textarea/g)||[]).length,1);
   assert.ok(main.innerHTML.includes('id="project-output"'));
+  assert.match(main.innerHTML,/answer-editor-preview/);
   await click('runAction','next');
   assert.match(main.innerHTML,/请把这次实际得到的结果带回来/,'validation stays on the incomplete step');
   state.learning.draft.output='叶舟团队版每人49元且含共享，木桥个人版39元但团队价格未列。现有资料不足以比较完整五人方案，需确认木桥团队报价与协作。';

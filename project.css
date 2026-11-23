@@ -7,3 +7,30 @@
 .run-steps{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:28px}.run-wizard>h2{font-size:23px;margin:12px 0}.run-wizard>p{line-height:1.9;color:var(--muted);font-size:13px}.run-wizard .guided-material{max-height:330px;overflow:auto}.run-wizard .form-textarea.tall{min-height:200px}.run-summary{margin:25px 0}.run-summary>div{display:grid;grid-template-columns:110px 1fr;gap:15px;padding:12px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.8}.run-summary dt{color:var(--muted)}.run-summary dd{margin:0;overflow-wrap:anywhere}.run-wizard .project-errors{scroll-margin-top:25px}
 @media(max-width:680px){.run-steps{gap:5px}.run-steps li{font-size:10px;display:grid;justify-items:center;text-align:center;gap:7px}.run-wizard>h2{font-size:21px}.run-summary>div{grid-template-columns:80px 1fr;gap:10px}.run-wizard .guided-footer .primary{flex:1}}
 @media print{:root{color-scheme:light;--page:#fff;--paper:#fff;--sidebar:#fff;--surface-alt:#f3f4f6;--input:#f7f8fa;--ink:#172033;--body:#253148;--muted:#455269;--subtle:#556176;--accent:#34487c;--accent-hover:#263a6b;--accent-soft:#edf0f7;--on-accent:#fff;--line:#c8ced8;--line-strong:#818da2;--warning:#735018;--warning-soft:#faf4e8;--danger:#9b3038;--danger-soft:#fceff0;--success:#285d72;--success-soft:#eef4f8;--shadow:none}body{background:var(--page);color:var(--ink)}.guided-more,.guided-footer,.project-tabs,.project-stages{display:none}.guided-workspace{max-width:none}.start-hero-art{display:none}}
+.answer-editor-preview{min-width:0;margin-top:10px}
+.answer-editor-preview>summary{width:fit-content;color:var(--accent);cursor:pointer;font-size:12px}
+.answer-markdown{min-width:0;white-space:normal;word-break:normal;overflow-wrap:anywhere}
+.answer-markdown.artifact-preview{overflow:auto}
+.answer-markdown > *{margin:0 0 12px}
+.answer-markdown > :last-child{margin-bottom:0}
+.answer-markdown :is(h1,h2,h3,h4,h5,h6){margin-top:16px;color:var(--ink);line-height:1.45;letter-spacing:normal}
+.answer-markdown :is(h1,h2,h3,h4,h5,h6):first-child{margin-top:0}
+.answer-markdown h1{font-size:17px}
+.answer-markdown h2{font-size:15px}
+.answer-markdown :is(h3,h4,h5,h6){font-size:13px}
+.answer-markdown p{color:inherit;font-size:inherit;line-height:inherit}
+.answer-markdown a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.answer-markdown :is(ol,ul){padding-inline-start:1.5em}
+.answer-markdown li > :is(ol,ul){margin-block:4px}
+.answer-markdown input[type="checkbox"]{margin-inline:0 5px;vertical-align:middle}
+.answer-markdown blockquote{padding-inline-start:12px;border-inline-start:2px solid var(--line-strong)}
+.answer-markdown blockquote > :last-child{margin-bottom:0}
+.answer-markdown code{padding:2px 4px;border-radius:4px;background:var(--surface-alt);font-size:.95em}
+.answer-markdown pre{overflow:auto;padding:10px 12px;border-radius:8px;background:var(--surface-alt)}
+.answer-markdown pre code{padding:0;background:none}
+.answer-markdown .markdown-table{max-width:100%;overflow:auto}
+.answer-markdown table{border-collapse:collapse}
+.answer-markdown :is(th,td){border:1px solid var(--line-strong);padding:5px 9px;text-align:start;overflow-wrap:normal}
+.answer-markdown th{background:var(--surface-alt);color:var(--ink)}
+.answer-markdown hr{border:0;border-top:1px solid var(--line-strong)}
+.guided-compare > details{min-width:0}
